@@ -1,0 +1,14 @@
+INFO:     Will watch for changes in these directories: ['/app']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [41091] using StatReload
+INFO:     Started server process [41212]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:46968 - "GET / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34830 - "GET / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60286 - "GET / HTTP/1.1" 404 Not Found
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [41212]
+INFO:     Stopping reloader process [41091]
