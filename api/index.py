@@ -2,7 +2,6 @@ import os
 import re
 import hashlib
 import hmac
-import secrets
 from urllib.parse import urlsplit, urlunsplit
 import httpx
 from bs4 import BeautifulSoup
