@@ -56,7 +56,7 @@ def normalize_url(raw_url: str) -> str:
 class ManualApartmentInput(BaseModel):
     url: str = Field(..., min_length=8)
     title: str = Field(..., min_length=1)
-    asuinalue: str = Field(..., min_length=1)
+    district: str = Field(..., min_length=1)
     price: float = Field(..., gt=0)
     size_m2: float = Field(..., gt=0)
     notes: str = ""
@@ -67,7 +67,7 @@ class ManualApartmentInput(BaseModel):
     def validate_url(cls, value: str) -> str:
         return normalize_url(value)
 
-    @field_validator("title", "asuinalue")
+    @field_validator("title", "district")
     @classmethod
     def reject_blank(cls, value: str) -> str:
         s = value.strip()
@@ -77,7 +77,7 @@ class ManualApartmentInput(BaseModel):
 
 class ScrapeApartmentInput(BaseModel):
     url: str = Field(..., min_length=8)
-    fallback_asuinalue: str = ""
+    fallback_district: str = ""
 
     @field_validator("url")
     @classmethod
@@ -107,9 +107,9 @@ class VuokraoviScraper:
         text = soup.get_text(" ", strip=True)
 
         area_match = re.search(r"kohteen:\s*([^,]+),\s*([^,]+),\s*Helsinki", text, re.IGNORECASE)
-        asuinalue = fallback_area.strip() or (area_match.group(2).strip() if area_match else "")
-        if not asuinalue:
-            raise ValueError("Could not detect Asuinalue. Please type a Fallback Asuinalue.")
+        district = fallback_area.strip() or (area_match.group(2).strip() if area_match else "")
+        if not district:
+            raise ValueError("Could not detect district. Please type a Fallback district.")
 
         price_match = re.search(r"(\d[\d\s\xa0]*(?:,\d+)?)\s*€\s*/\s*kk", text)
         price_str = re.sub(r"[\s\xa0]", "", price_match.group(1)).replace(",", ".") if price_match else "0"
@@ -126,7 +126,7 @@ class VuokraoviScraper:
         return {
             "url": url,
             "title": title,
-            "asuinalue": asuinalue.title(),
+            "district": district.title(),
             "price": price_val,
             "size_m2": size_val,
             "notes": "",
@@ -152,14 +152,14 @@ scraper = VuokraoviScraper()
 def list_apartments(sort_by: str = "price", desc: bool = False, authorization: str = Header(None)):
     get_current_user(authorization)
     sb = get_supabase()
-    res = sb.table("apartments").select("*").order("asuinalue", desc=False).execute()
+    res = sb.table("apartments").select("*").order("district", desc=False).execute()
     rows = res.data or []
     grouped = {}
     for item in rows:
         price = float(item.get("price", 0))
         size = float(item.get("size_m2", 0))
         item["eur_per_m2"] = round(price / size, 2) if size > 0 else 0.0
-        area = item.get("asuinalue", "Tuntematon")
+        area = item.get("district", "Tuntematon")
         if not item.get("added_by"):
             item["added_by"] = "Leo"
         grouped.setdefault(area, []).append(item)
@@ -176,7 +176,7 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
     data = {
         "url": payload.url,
         "title": payload.title.strip(),
-        "asuinalue": payload.asuinalue.strip().title(),
+        "district": payload.district.strip().title(),
         "price": payload.price,
         "size_m2": payload.size_m2,
         "notes": payload.notes.strip(),
@@ -191,11 +191,11 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
 def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)):
     user = get_current_user(authorization)
     try:
-        extracted = scraper.extract(payload.url, payload.fallback_asuinalue)
+        extracted = scraper.extract(payload.url, payload.fallback_district)
         extracted["added_by"] = user["display_name"]
         sb = get_supabase()
         res = sb.table("apartments").upsert(extracted, on_conflict="url").execute()
-        return {"status": "saved", "data": res.data, "asuinalue": extracted["asuinalue"]}
+        return {"status": "saved", "data": res.data, "district": extracted["district"]}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
