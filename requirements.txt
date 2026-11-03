@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+pydantic
 httpx
 beautifulsoup4
-pydantic
+supabase
