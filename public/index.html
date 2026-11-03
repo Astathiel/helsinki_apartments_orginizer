@@ -130,17 +130,25 @@ async function apiHeaders() {
 }
 
 async function handleLogin() {
-    const email = document.getElementById("login-email").value.trim();
+    const rawInput = document.getElementById("login-email").value.trim().toLowerCase();
     const password = document.getElementById("login-pass").value;
     const msg = document.getElementById("auth-msg");
     msg.textContent = "";
-    
+
+    if (!rawInput || !password) {
+        msg.textContent = "Please enter both username/email and password.";
+        return;
+    }
+
+    // Automatically append domain if you typed a plain username like "leo" or "ella"
+    const email = rawInput.includes("@") ? rawInput : `${rawInput}@tracker.local`;
+
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) {
         msg.textContent = error.message;
         return;
     }
-    
+
     currentSession = data.session;
     document.getElementById("auth-overlay").style.display = "none";
     updateUserDisplay(data.user);
