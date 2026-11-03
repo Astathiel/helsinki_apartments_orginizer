@@ -33,7 +33,7 @@
         .status-Applied { background: #10b981; color: #ffffff; }
         .status-Viewing { background: #f59e0b; color: #000000; }
         .status-Not { background: #64748b; color: #ffffff; }
-        .author-badge { display: inline-flex; align-items: center; gap: 5px; background: #0f172a; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; color: #94a3b8; border: 1px solid #334155; }
+        .author-badge { display: inline-flex; align-items: center; gap: 5px; background: #0f172a; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; border: 1px solid #334155; }
         .author-badge-leo { border-color: #38bdf8; color: #38bdf8; }
         .author-badge-ella { border-color: #f472b6; color: #f472b6; }
         .notes-box { font-size: 0.9rem; color: #cbd5e1; background: #0f172a; padding: 8px; border-radius: 6px; margin-top: 8px; border-left: 3px solid #3b82f6; }
@@ -47,9 +47,9 @@
 <body>
 <div id="auth-overlay">
     <div class="card auth-box">
-        <h2>Apartment Tracker Login</h2>
-        <p style="color: #94a3b8; font-size: 0.9rem;">Sign in with your account</p>
-        <input id="login-user" placeholder="Username (leo_admin / ella_hel)">
+        <h2>Supabase Sign In</h2>
+        <p style="color: #94a3b8; font-size: 0.9rem;">Sign in with your user email & password</p>
+        <input id="login-email" placeholder="Email (e.g. leo@tracker.local)">
         <input id="login-pass" type="password" placeholder="Password">
         <button onclick="handleLogin()">Sign In</button>
         <p id="auth-msg" class="msg" style="color: #f87171;"></p>
@@ -113,80 +113,67 @@
 </div>
 
 <script>
-let authToken = localStorage.getItem("apt_auth_token") || "";
-let currentUser = JSON.parse(localStorage.getItem("apt_user_data") || "null");
-let supabaseClient = null;
+// Replace these two strings with your actual Supabase credentials:
+const SUPABASE_PROJECT_URL = "https://fyrwiytzuxsebluygtjb.supabase.co";
+const SUPABASE_ANON_PUBLIC_KEY = "sb_publishable_EyvpHQRMoLrGmstxquNbfw_txuKKrex";
 
-function apiHeaders() {
+const sb = supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_PUBLIC_KEY);
+let currentSession = null;
+
+async function apiHeaders() {
+    const { data: { session } } = await sb.auth.getSession();
     return {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${authToken}`
+        "Authorization": `Bearer ${session ? session.access_token : ""}`
     };
 }
 
 async function handleLogin() {
-    const username = document.getElementById("login-user").value.trim();
+    const email = document.getElementById("login-email").value.trim();
     const password = document.getElementById("login-pass").value;
     const msg = document.getElementById("auth-msg");
-    if (!username || !password) {
-        msg.textContent = "Please enter username and password.";
+    msg.textContent = "";
+    
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+        msg.textContent = error.message;
         return;
     }
-    const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-        msg.textContent = data.detail || "Login failed.";
-        return;
-    }
-    authToken = data.token;
-    currentUser = data.user;
-    localStorage.setItem("apt_auth_token", authToken);
-    localStorage.setItem("apt_user_data", JSON.stringify(currentUser));
+    currentSession = data.session;
     document.getElementById("auth-overlay").style.display = "none";
-    updateUserDisplay();
-    initSupabaseRealtime(data.supabase_url, data.supabase_anon_key);
+    updateUserDisplay(data.user);
     loadApartments();
 }
 
-function handleLogout() {
-    localStorage.removeItem("apt_auth_token");
-    localStorage.removeItem("apt_user_data");
+async function handleLogout() {
+    await sb.auth.signOut();
     location.reload();
 }
 
-function updateUserDisplay() {
-    if (currentUser) {
-        document.getElementById("current-user-display").textContent = `${currentUser.display_name} (${currentUser.role || 'Member'})`;
-    }
+function updateUserDisplay(user) {
+    if (!user) return;
+    const name = user.user_metadata?.display_name || user.email.split("@")[0].toUpperCase();
+    document.getElementById("current-user-display").textContent = name;
 }
 
-function initSupabaseRealtime(url, anonKey) {
-    if (!url || !anonKey || supabaseClient) return;
-    supabaseClient = supabase.createClient(url, anonKey);
-    supabaseClient
-        .channel("public:apartments")
-        .on("postgres_changes", { event: "*", schema: "public", table: "apartments" }, () => {
-            loadApartments();
-        })
-        .subscribe((status) => {
-            const statusEl = document.getElementById("sync-status");
-            if (status === "SUBSCRIBED") {
-                statusEl.textContent = "⚡ Realtime Connected";
-                statusEl.style.color = "#10b981";
-            } else {
-                statusEl.textContent = "Connecting...";
-                statusEl.style.color = "#f59e0b";
-            }
-        });
+function setupRealtime() {
+    sb.channel("public:apartments")
+      .on("postgres_changes", { event: "*", schema: "public", table: "apartments" }, () => {
+          loadApartments();
+      })
+      .subscribe((status) => {
+          const el = document.getElementById("sync-status");
+          if (status === "SUBSCRIBED") {
+              el.textContent = "⚡ Realtime Connected";
+              el.style.color = "#10b981";
+          }
+      });
 }
 
 async function loadApartments() {
+    const headers = await apiHeaders();
     const [sortBy, desc] = document.getElementById("sort-select").value.split("-");
-    const res = await fetch(`/api/apartments?sort_by=${sortBy}&desc=${desc}`, { headers: apiHeaders() });
+    const res = await fetch(`/api/apartments?sort_by=${sortBy}&desc=${desc}`, { headers });
     if (res.status === 401) {
         document.getElementById("auth-overlay").style.display = "flex";
         return;
@@ -244,7 +231,7 @@ function editApt(encodedJson) {
     document.getElementById("m-size").value = apt.size_m2;
     document.getElementById("m-status").value = apt.status || "Interested";
     document.getElementById("m-notes").value = apt.notes || "";
-    document.getElementById("form-title").textContent = `Option A: Editing Listing (Originally by ${apt.added_by || 'Leo'})`;
+    document.getElementById("form-title").textContent = `Option A: Editing Listing (By ${apt.added_by || 'Leo'})`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -262,9 +249,10 @@ async function submitManual() {
         status.textContent = "All fields are required and Price / Size must be greater than 0.";
         return;
     }
+    const headers = await apiHeaders();
     const res = await fetch("/api/apartments/manual", {
         method: "POST",
-        headers: apiHeaders(),
+        headers,
         body: JSON.stringify({ url, title, asuinalue, price, size_m2, status: aptStatus, notes })
     });
     const data = await res.json();
@@ -292,9 +280,10 @@ async function submitScrape() {
     }
     status.style.color = "#94a3b8";
     status.textContent = "Fetching listing from Vuokraovi...";
+    const headers = await apiHeaders();
     const res = await fetch("/api/apartments/scrape", {
         method: "POST",
-        headers: apiHeaders(),
+        headers,
         body: JSON.stringify({ url, fallback_asuinalue })
     });
     const data = await res.json();
@@ -311,28 +300,22 @@ async function submitScrape() {
 }
 
 async function deleteApt(id) {
-    await fetch(`/api/apartments/${id}`, { method: "DELETE", headers: apiHeaders() });
+    const headers = await apiHeaders();
+    await fetch(`/api/apartments/${id}`, { method: "DELETE", headers });
     loadApartments();
 }
 
-if (authToken && currentUser) {
-    document.getElementById("auth-overlay").style.display = "none";
-    updateUserDisplay();
-    fetch("/api/auth/me", { headers: apiHeaders() })
-        .then(res => {
-            if (!res.ok) throw new Error("Auth failed");
-            return res.json();
-        })
-        .then(data => {
-            initSupabaseRealtime(data.supabase_url, data.supabase_anon_key);
-            loadApartments();
-        })
-        .catch(() => {
-            document.getElementById("auth-overlay").style.display = "flex";
-        });
-} else {
-    document.getElementById("auth-overlay").style.display = "flex";
-}
+// Auto-check session on load
+sb.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+        document.getElementById("auth-overlay").style.display = "none";
+        updateUserDisplay(session.user);
+        setupRealtime();
+        loadApartments();
+    } else {
+        document.getElementById("auth-overlay").style.display = "flex";
+    }
+});
 </script>
 </body>
 </html>

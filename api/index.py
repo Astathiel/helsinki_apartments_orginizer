@@ -1,72 +1,36 @@
 import os
 import re
-import hashlib
-import hmac
 from urllib.parse import urlsplit, urlunsplit
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Header
+import jwt
 from pydantic import BaseModel, Field, field_validator
 from supabase import create_client, Client
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-APP_SECRET = os.environ.get("APP_SECRET", "helsinki-apartment-token-secret-key-2026")
-
-USERS_DB = {
-    "leo_admin": {
-        "display_name": "Leo",
-        "role": "Owner",
-        "salt": "d981a4b14d3f572e811c7fa156bc29aa",
-        "hash": "b2f02f928e3b1c678a6ffb9c7b94ad3526ae77fa9db41b90f423377dc76c48e8"
-    },
-    "ella_hel": {
-        "display_name": "Ella",
-        "role": "Member",
-        "salt": "a4f5c9e10283bd78394e0192a8b372ef",
-        "hash": "8cb635ef84bce18d960f76cf6b1cce8aef7ec6d426466f8510864380eb92f69e"
-    }
-}
-
-def hash_password(password: str, salt: str) -> str:
-    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000).hex()
-
-def verify_user(username: str, password: str) -> dict:
-    user = USERS_DB.get(username.strip().lower())
-    if not user:
-        return None
-    computed_hash = hash_password(password, user["salt"])
-    if hmac.compare_digest(computed_hash, user["hash"]):
-        return {"username": username.strip().lower(), "display_name": user["display_name"], "role": user["role"]}
-    return None
-
-def create_auth_token(username: str, display_name: str) -> str:
-    data = f"{username}:{display_name}"
-    signature = hmac.new(APP_SECRET.encode("utf-8"), data.encode("utf-8"), hashlib.sha256).hexdigest()
-    return f"{data}:{signature}"
-
-def verify_token(token: str) -> dict:
-    if not token:
-        raise HTTPException(status_code=401, detail="Missing authorization token.")
-    parts = token.split(":")
-    if len(parts) != 3:
-        raise HTTPException(status_code=401, detail="Malformed authorization token.")
-    username, display_name, signature = parts
-    expected_sig = hmac.new(APP_SECRET.encode("utf-8"), f"{username}:{display_name}".encode("utf-8"), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(signature, expected_sig):
-        raise HTTPException(status_code=401, detail="Invalid token signature.")
-    return {"username": username, "display_name": display_name}
-
-def get_current_user(authorization: str = Header(None)) -> dict:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Bearer token.")
-    raw_token = authorization.replace("Bearer ", "").strip()
-    return verify_token(raw_token)
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
 
 def get_supabase() -> Client:
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Missing Supabase credentials in environment variables.")
     return create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+def get_current_user(authorization: str = Header(None)) -> dict:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Bearer token.")
+    token = authorization.replace("Bearer ", "").strip()
+    try:
+        if SUPABASE_JWT_SECRET:
+            payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated")
+        else:
+            payload = jwt.decode(token, options={"verify_signature": False})
+        meta = payload.get("user_metadata", {})
+        display_name = meta.get("display_name") or payload.get("email", "").split("@")[0].capitalize() or "Leo"
+        return {"id": payload.get("sub"), "email": payload.get("email"), "display_name": display_name}
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail=f"Invalid session token: {str(exc)}")
 
 def normalize_url(raw_url: str) -> str:
     cleaned = raw_url.strip()
@@ -77,10 +41,6 @@ def normalize_url(raw_url: str) -> str:
         raise ValueError("URL must start with http:// or https://")
     clean_path = parts.path.rstrip("/")
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), clean_path, "", ""))
-
-class LoginPayload(BaseModel):
-    username: str
-    password: str
 
 class ManualApartmentInput(BaseModel):
     url: str = Field(..., min_length=8)
@@ -149,28 +109,7 @@ class VuokraoviScraper:
 app = FastAPI()
 scraper = VuokraoviScraper()
 
-@app.post("/api/auth/login")
-def login(payload: LoginPayload):
-    user = verify_user(payload.username, payload.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid username or password.")
-    token = create_auth_token(user["username"], user["display_name"])
-    return {
-        "token": token,
-        "user": user,
-        "supabase_url": SUPABASE_URL,
-        "supabase_anon_key": os.environ.get("SUPABASE_ANON_KEY", "")
-    }
-
-@app.get("/api/auth/me")
-def get_me(authorization: str = Header(None)):
-    user = get_current_user(authorization)
-    return {
-        "user": user,
-        "supabase_url": SUPABASE_URL,
-        "supabase_anon_key": os.environ.get("SUPABASE_ANON_KEY", "")
-    }
-
+@app.get("/apartments")
 @app.get("/api/apartments")
 def list_apartments(sort_by: str = "price", desc: bool = False, authorization: str = Header(None)):
     get_current_user(authorization)
@@ -191,6 +130,7 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
         grouped[area].sort(key=lambda x: x.get(sort_key, 0), reverse=desc)
     return grouped
 
+@app.post("/apartments/manual")
 @app.post("/api/apartments/manual")
 def add_manual(payload: ManualApartmentInput, authorization: str = Header(None)):
     user = get_current_user(authorization)
@@ -208,6 +148,7 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
     res = sb.table("apartments").upsert(data, on_conflict="url").execute()
     return {"status": "saved", "data": res.data}
 
+@app.post("/apartments/scrape")
 @app.post("/api/apartments/scrape")
 def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)):
     user = get_current_user(authorization)
@@ -220,6 +161,7 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
+@app.delete("/apartments/{apt_id}")
 @app.delete("/api/apartments/{apt_id}")
 def remove_apartment(apt_id: int, authorization: str = Header(None)):
     get_current_user(authorization)

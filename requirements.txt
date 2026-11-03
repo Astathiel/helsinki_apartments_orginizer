@@ -3,3 +3,4 @@ pydantic
 httpx
 beautifulsoup4
 supabase
+pyjwt[crypto]
