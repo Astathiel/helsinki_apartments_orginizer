@@ -175,7 +175,7 @@ function setupRealtime() {
       .subscribe((status) => {
           const el = document.getElementById("sync-status");
           if (status === "SUBSCRIBED") {
-              el.textContent = "⚡ Realtime Connected";
+              el.textContent = "Realtime Connected";
               el.style.color = "#10b981";
           }
       });
