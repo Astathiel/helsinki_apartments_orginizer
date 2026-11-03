@@ -3,7 +3,8 @@ import re
 from urllib.parse import urlsplit, urlunsplit
 import httpx
 from bs4 import BeautifulSoup
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Request
+from starlette.middleware.base import BaseHTTPMiddleware
 import jwt
 from pydantic import BaseModel, Field, field_validator
 from supabase import create_client, Client
@@ -75,27 +76,43 @@ class ScrapeApartmentInput(BaseModel):
 
 class VuokraoviScraper:
     def __init__(self):
-        self.headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "fi,en-US;q=0.9,en;q=0.8",
+        }
 
     def extract(self, url: str, fallback_area: str = "") -> dict:
-        response = httpx.get(url, headers=self.headers, follow_redirects=True, timeout=10.0)
-        response.raise_for_status()
+        try:
+            response = httpx.get(url, headers=self.headers, follow_redirects=True, timeout=15.0)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise ValueError(f"Vuokraovi page returned HTTP {exc.response.status_code}")
+        except Exception as exc:
+            raise ValueError(f"Connection to listing failed: {str(exc)}")
+
         soup = BeautifulSoup(response.text, "html.parser")
         raw_title = soup.title.string.strip() if soup.title and soup.title.string else ""
         title = raw_title.replace(" - Vuokraovi.com", "").strip() or "Vuokraovi Kohde"
         text = soup.get_text(" ", strip=True)
+
         area_match = re.search(r"kohteen:\s*([^,]+),\s*([^,]+),\s*Helsinki", text, re.IGNORECASE)
         asuinalue = fallback_area.strip() or (area_match.group(2).strip() if area_match else "")
         if not asuinalue:
-            raise ValueError("Could not detect Asuinalue from listing. Please provide a Fallback Asuinalue.")
+            raise ValueError("Could not detect Asuinalue. Please type a Fallback Asuinalue.")
+
         price_match = re.search(r"(\d[\d\s\xa0]*(?:,\d+)?)\s*€\s*/\s*kk", text)
         price_str = re.sub(r"[\s\xa0]", "", price_match.group(1)).replace(",", ".") if price_match else "0"
+
         size_match = re.search(r"(\d+(?:,\d+)?)\s*m²", text)
         size_str = size_match.group(1).replace(",", ".") if size_match else "0"
+
         price_val = float(price_str)
         size_val = float(size_str)
+
         if price_val <= 0 or size_val <= 0:
-            raise ValueError("Could not extract valid price or m² from link. Please use manual entry.")
+            raise ValueError("Could not extract price or size. Use manual entry (Option A).")
+
         return {
             "url": url,
             "title": title,
@@ -107,6 +124,17 @@ class VuokraoviScraper:
         }
 
 app = FastAPI()
+
+class VercelPathMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.scope.get("path", "")
+        if path.startswith("/api/index.py"):
+            new_path = path.replace("/api/index.py", "", 1)
+            request.scope["path"] = new_path or "/"
+        return await call_next(request)
+
+app.add_middleware(VercelPathMiddleware)
+
 scraper = VuokraoviScraper()
 
 @app.get("/apartments")
