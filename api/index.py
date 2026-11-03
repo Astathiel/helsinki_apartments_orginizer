@@ -149,7 +149,7 @@ class VuokraoviScraper:
 app = FastAPI()
 scraper = VuokraoviScraper()
 
-@app.post("/api/auth/login")
+@app.post("/auth/login")
 def login(payload: LoginPayload):
     user = verify_user(payload.username, payload.password)
     if not user:
@@ -162,7 +162,7 @@ def login(payload: LoginPayload):
         "supabase_anon_key": os.environ.get("SUPABASE_ANON_KEY", "")
     }
 
-@app.get("/api/auth/me")
+@app.get("/auth/me")
 def get_me(authorization: str = Header(None)):
     user = get_current_user(authorization)
     return {
@@ -171,7 +171,7 @@ def get_me(authorization: str = Header(None)):
         "supabase_anon_key": os.environ.get("SUPABASE_ANON_KEY", "")
     }
 
-@app.get("/api/apartments")
+@app.get("/apartments")
 def list_apartments(sort_by: str = "price", desc: bool = False, authorization: str = Header(None)):
     get_current_user(authorization)
     sb = get_supabase()
@@ -191,7 +191,7 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
         grouped[area].sort(key=lambda x: x.get(sort_key, 0), reverse=desc)
     return grouped
 
-@app.post("/api/apartments/manual")
+@app.post("/apartments/manual")
 def add_manual(payload: ManualApartmentInput, authorization: str = Header(None)):
     user = get_current_user(authorization)
     sb = get_supabase()
@@ -208,7 +208,7 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
     res = sb.table("apartments").upsert(data, on_conflict="url").execute()
     return {"status": "saved", "data": res.data}
 
-@app.post("/api/apartments/scrape")
+@app.post("/apartments/scrape")
 def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)):
     user = get_current_user(authorization)
     try:
@@ -220,7 +220,7 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-@app.delete("/api/apartments/{apt_id}")
+@app.delete("/apartments/{apt_id}")
 def remove_apartment(apt_id: int, authorization: str = Header(None)):
     get_current_user(authorization)
     sb = get_supabase()
