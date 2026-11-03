@@ -22,17 +22,27 @@ def get_current_user(authorization: str = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid Bearer token.")
     token = authorization.replace("Bearer ", "").strip()
+    
     try:
-        if SUPABASE_JWT_SECRET:
-            payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated")
-        else:
-            payload = jwt.decode(token, options={"verify_signature": False})
-        meta = payload.get("user_metadata", {})
-        display_name = meta.get("display_name") or payload.get("email", "").split("@")[0].capitalize() or "Leo"
-        return {"id": payload.get("sub"), "email": payload.get("email"), "display_name": display_name}
+        sb = get_supabase()
+        user_response = sb.auth.get_user(token)
+        if not user_response or not user_response.user:
+            raise HTTPException(status_code=401, detail="Invalid session token.")
+        
+        user = user_response.user
+        meta = user.user_metadata or {}
+        display_name = meta.get("display_name") or (user.email.split("@")[0].capitalize() if user.email else "User")
+        
+        return {
+            "id": user.id,
+            "email": user.email,
+            "display_name": display_name
+        }
+    except HTTPException:
+        raise
     except Exception as exc:
-        raise HTTPException(status_code=401, detail=f"Invalid session token: {str(exc)}")
-
+        raise HTTPException(status_code=401, detail=f"Authentication error: {str(exc)}")
+    
 def normalize_url(raw_url: str) -> str:
     cleaned = raw_url.strip()
     if not cleaned:

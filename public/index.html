@@ -122,9 +122,10 @@ let currentSession = null;
 
 async function apiHeaders() {
     const { data: { session } } = await sb.auth.getSession();
+    const token = session ? session.access_token : (currentSession ? currentSession.access_token : "");
     return {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${session ? session.access_token : ""}`
+        "Authorization": `Bearer ${token}`
     };
 }
 
@@ -139,10 +140,12 @@ async function handleLogin() {
         msg.textContent = error.message;
         return;
     }
+    
     currentSession = data.session;
     document.getElementById("auth-overlay").style.display = "none";
     updateUserDisplay(data.user);
-    loadApartments();
+    setupRealtime();
+    await loadApartments();
 }
 
 async function handleLogout() {
