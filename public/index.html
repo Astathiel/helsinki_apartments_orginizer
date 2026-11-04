@@ -923,6 +923,9 @@
             <span class="legend-item"><span class="legend-dot dot-not"></span> Not Interested</span>
             <span style="color: var(--msg-color); font-size: 0.75rem;">• Geocoded via HSL Digitransit</span>
         </div>
+        <div id="mutual-count-badge" style="font-weight: 700; font-size: 0.9rem; color: #10b981;">
+            <!-- Mutual matches counter -->
+        </div>
     </div>
 
     <div id="groups"></div>
@@ -1036,7 +1039,9 @@ function updateUserDisplay(user) {
     document.getElementById("current-user-display").textContent = currentDisplayName;
 }
 
+// Realtime subscriptions for both apartments and apartment_votes
 function setupRealtime() {
+    // 1. Listen for apartment changes
     sb.channel("public:apartments")
       .on("postgres_changes", { event: "*", schema: "public", table: "apartments" }, () => {
           loadApartments();
