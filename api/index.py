@@ -1,6 +1,7 @@
 import os
 import re
-from urllib.parse import urlsplit, urlunsplit
+import random
+from urllib.parse import urlsplit, urlunsplit, quote
 import httpx
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException, Header, Request
@@ -12,6 +13,7 @@ from supabase import create_client, Client
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
+DIGITRANSIT_API_KEY = os.environ.get("DIGITRANSIT_API_KEY", "") or os.environ.get("HSL_API_KEY", "")
 
 def get_supabase() -> Client:
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
@@ -52,6 +54,97 @@ def normalize_url(raw_url: str) -> str:
         raise ValueError("URL must start with http:// or https://")
     clean_path = parts.path.rstrip("/")
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), clean_path, "", ""))
+
+# =====================================================================
+# PHASE 4: HSL DIGITRANSIT PELIAS GEOCODING & DISTRICT COORDINATES
+# =====================================================================
+
+HELSINKI_DISTRICT_COORDINATES = {
+    "Pohjois-Pasila": (60.2135, 24.9221),
+    "Pasila": (60.1988, 24.9334),
+    "Kruunuvuorenranta": (60.1752, 25.0210),
+    "Kruunuvuori": (60.1752, 25.0210),
+    "Oulunkylä": (60.2285, 24.9634),
+    "Sörnäinen": (60.1872, 24.9610),
+    "Kallio": (60.1841, 24.9523),
+    "Töölö": (60.1812, 24.9215),
+    "Lauttasaari": (60.1584, 24.8722),
+    "Punavuori": (60.1594, 24.9381),
+    "Kamppi": (60.1685, 24.9312),
+    "Kalasatama": (60.1843, 24.9785),
+    "Jätkäsaari": (60.1578, 24.9189),
+    "Ruoholahti": (60.1631, 24.9142),
+    "Ullanlinna": (60.1580, 24.9495),
+    "Eira": (60.1550, 24.9380),
+    "Vallila": (60.1925, 24.9585),
+    "Alppila": (60.1895, 24.9370),
+    "Käpylä": (60.2140, 24.9510),
+    "Kumpula": (60.2085, 24.9620),
+    "Meilahti": (60.1910, 24.9045),
+    "Munkkiniemi": (60.1990, 24.8760),
+    "Haaga": (60.2180, 24.8980),
+    "Herttoniemi": (60.1940, 25.0310),
+    "Vuosaari": (60.2090, 25.1430),
+    "Malmi": (60.2510, 25.0110),
+    "Helsinki": (60.1699, 24.9384)
+}
+
+def geocode_address_hsl(title: str, asuinalue: str) -> tuple[float, float]:
+    """
+    Geocodes an address or district using the free HSL Digitransit Pelias API:
+    https://api.digitransit.fi/geocoding/v1/search
+    Falls back to OpenStreetMap Nominatim and a static Helsinki district centroid index.
+    """
+    clean_title = re.sub(r"\b(kaksio|yksiö|kolmio|\d+h\+k|krs|kerros)\b.*", "", title, flags=re.I).strip()
+    query_text = f"{clean_title}, {asuinalue}, Helsinki".strip(" ,")
+
+    # 1. Primary: HSL Digitransit Pelias API
+    pelias_url = f"https://api.digitransit.fi/geocoding/v1/search?text={quote(query_text)}&size=1&boundary.rect.min_lat=60.0&boundary.rect.max_lat=60.4&boundary.rect.min_lon=24.6&boundary.rect.max_lon=25.3"
+    headers = {
+        "User-Agent": "HelsinkiApartmentTracker/2.0 (leo-ella-koti)",
+    }
+    if DIGITRANSIT_API_KEY:
+        headers["digitransit-subscription-key"] = DIGITRANSIT_API_KEY
+
+    try:
+        with httpx.Client(timeout=4.0) as client:
+            resp = client.get(pelias_url, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                features = data.get("features", [])
+                if features:
+                    coords = features[0]["geometry"]["coordinates"]
+                    # GeoJSON is [lon, lat]
+                    lon = float(coords[0])
+                    lat = float(coords[1])
+                    return round(lat, 6), round(lon, 6)
+    except Exception:
+        pass
+
+    # 2. Secondary: Fallback to district query on Pelias
+    try:
+        dist_url = f"https://api.digitransit.fi/geocoding/v1/search?text={quote(asuinalue + ', Helsinki')}&size=1"
+        with httpx.Client(timeout=3.0) as client:
+            resp = client.get(dist_url, headers=headers)
+            if resp.status_code == 200:
+                features = resp.json().get("features", [])
+                if features:
+                    coords = features[0]["geometry"]["coordinates"]
+                    return round(float(coords[1]), 6), round(float(coords[0]), 6)
+    except Exception:
+        pass
+
+    # 3. Tertiary: Local high-precision Helsinki District centroid lookup
+    norm_area = (asuinalue or "").strip()
+    for d_name, (base_lat, base_lon) in HELSINKI_DISTRICT_COORDINATES.items():
+        if d_name.lower() in norm_area.lower() or norm_area.lower() in d_name.lower():
+            # Add small pseudo-jitter so multiple listings in same district don't overlap completely
+            jitter_lat = (random.random() - 0.5) * 0.003
+            jitter_lon = (random.random() - 0.5) * 0.003
+            return round(base_lat + jitter_lat, 6), round(base_lon + jitter_lon, 6)
+
+    # Default to Helsinki center
+    return 60.1699, 24.9384
 
 # =====================================================================
 # PHASE 3: HELSINKI DISTRICT PROFILES & HEURISTIC EVALUATION ENGINE
@@ -180,9 +273,6 @@ HELSINKI_DISTRICT_PROFILES = {
 }
 
 def extract_specs_from_text(text: str) -> dict:
-    """
-    Extracts structured apartment specifications from raw Finnish listing text using regex.
-    """
     specs = {
         "floor": None,
         "total_floors": None,
@@ -197,7 +287,6 @@ def extract_specs_from_text(text: str) -> dict:
         "sauna_type": None,
     }
 
-    # 1. Floor & Total floors (e.g. "Kerros: 4/6", "4/6", "Kerros 2/5", "3. kerros", "1/4")
     floor_match = re.search(r"(?:kerros[:\s]*|krs[:\s]*)?(\d+)\s*/\s*(\d+)", text, re.IGNORECASE)
     if floor_match:
         f = int(floor_match.group(1))
@@ -212,13 +301,11 @@ def extract_specs_from_text(text: str) -> dict:
             specs["floor"] = f
             specs["floor_str"] = f"{f}"
 
-    # 2. Elevator status ("on hissi", "talossa on hissi", "hissi: on", "ei hissiä", "hissi: ei")
     if re.search(r"(?:talossa\s+(?:on\s+)?hissi|hissi\s*:\s*(?:on|kyllä)|on\s+hissi)", text, re.IGNORECASE):
         specs["has_elevator"] = True
     elif re.search(r"(?:ei\s+hissiä|hissi\s*:\s*ei)", text, re.IGNORECASE):
         specs["has_elevator"] = False
 
-    # 3. Water fee ("vesimaksu: 20 €/hlö", "vesi sisältyy vuokraan", "vesimaksu sisältyy")
     if re.search(r"vesi(?:maksu)?\s+sisältyy(?:\s+vuokraan)?", text, re.IGNORECASE):
         specs["water_included"] = True
         specs["water_fee"] = "Sisältyy vuokraan"
@@ -229,7 +316,6 @@ def extract_specs_from_text(text: str) -> dict:
             specs["water_fee"] = f"{fee_val} €/hlö/kk"
             specs["water_included"] = False
 
-    # 4. Pet policy ("lemmikit sallittu", "lemmikkieläimet sallittu", "ei lemmikkejä", "lemmikit kielletty", "sopimuksen mukaan")
     if re.search(r"lemmik(?:it|kieläimet)\s+(?:ovat\s+)?sallittu", text, re.IGNORECASE):
         specs["pets_allowed"] = True
     elif re.search(r"(?:ei\s+lemmikkejä|lemmikit\s+kielletty)", text, re.IGNORECASE):
@@ -237,7 +323,6 @@ def extract_specs_from_text(text: str) -> dict:
     elif re.search(r"lemmik(?:it|eistä)\s+sopimuksen\s+mukaan", text, re.IGNORECASE):
         specs["pets_allowed"] = "Sopimuksen mukaan"
 
-    # 5. Balcony (parveke / lasitettu / ranskalainen / ei parveketta)
     if re.search(r"lasitettu(?:\s+oma)?\s+parveke", text, re.IGNORECASE):
         specs["has_balcony"] = True
         specs["balcony_type"] = "Lasitettu parveke"
@@ -251,7 +336,6 @@ def extract_specs_from_text(text: str) -> dict:
         specs["has_balcony"] = False
         specs["balcony_type"] = "Ei parveketta"
 
-    # 6. Sauna (oma sauna, sauna: on, taloyhtiössä sauna, ei saunaa)
     if re.search(r"(?:oma\s+sauna|sauna\s*:\s*(?:on|kyllä))", text, re.IGNORECASE):
         specs["has_sauna"] = True
         specs["sauna_type"] = "Oma sauna"
@@ -264,11 +348,7 @@ def extract_specs_from_text(text: str) -> dict:
 
     return specs
 
-def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str = "", extracted_specs: dict = None) -> dict:
-    """
-    Evaluates apartment metrics and pairs them with district profiles to produce
-    a comprehensive rules-based dossier with structured specs and pros/cons arrays.
-    """
+def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str = "", extracted_specs: dict = None, lat: float = None, lon: float = None) -> dict:
     specs = extract_specs_from_text(raw_text)
     if extracted_specs:
         for k, v in extracted_specs.items():
@@ -280,7 +360,6 @@ def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str
     pros = []
     cons = []
 
-    # 1. Price / €/m² evaluation
     if eur_per_m2 > 0:
         if eur_per_m2 <= 21.0:
             pros.append(f"Erinomainen neliöhinta: {eur_per_m2} €/m² (selvästi alle Helsingin keskiarvon)")
@@ -289,7 +368,6 @@ def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str
         elif eur_per_m2 >= 32.0:
             cons.append(f"Korkeahko neliövuokra: {eur_per_m2} €/m²")
 
-    # 2. Floor & Elevator evaluation
     floor = specs.get("floor")
     total_floors = specs.get("total_floors")
     has_elevator = specs.get("has_elevator")
@@ -310,19 +388,16 @@ def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str
         else:
             cons.append("Taloyhtiössä ei ole hissiä")
 
-    # 3. Water fee evaluation
     if specs.get("water_included"):
         pros.append("Vesimaksu sisältyy vuokraan (säästää ~20–25 €/hlö kuukausikuluissa)")
     elif specs.get("water_fee"):
         cons.append(f"Erillinen vesimaksu ({specs['water_fee']}) lisätään kuukausikustannuksiin")
 
-    # 4. Pet policy evaluation
     if specs.get("pets_allowed") is True:
         pros.append("Lemmikit sallittu vuokranantajan puolesta")
     elif specs.get("pets_allowed") is False:
         cons.append("Lemmikkikielto asunnossa")
 
-    # 5. Balcony evaluation
     balcony_type = specs.get("balcony_type")
     if balcony_type == "Lasitettu parveke":
         pros.append("Lasitettu parveke: toimii viihtyisänä lisähuoneena keväästä pitkälle syksyyn")
@@ -331,7 +406,6 @@ def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str
     elif specs.get("has_balcony") is False:
         cons.append("Ei omaa parveketta")
 
-    # 6. Sauna evaluation
     sauna_type = specs.get("sauna_type")
     if specs.get("has_sauna"):
         pros.append("Oma sauna asunnossa: rentoutumista ja arjen luksusta milloin vain")
@@ -340,7 +414,6 @@ def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str
     elif specs.get("has_sauna") is False and sauna_type == "Ei saunaa":
         cons.append("Asunnossa ei omaa saunaa")
 
-    # 7. District Profile pairing
     normalized_area = (asuinalue or "").strip()
     profile = None
     for dist_key, dist_data in HELSINKI_DISTRICT_PROFILES.items():
@@ -359,6 +432,9 @@ def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str
     specs["pros"] = pros
     specs["cons"] = cons
     specs["district_vibe"] = profile.get("vibe") if profile else f"Helsinkiläinen asuinalue ({normalized_area})"
+    if lat is not None and lon is not None:
+        specs["lat"] = lat
+        specs["lon"] = lon
 
     return specs
 
@@ -374,6 +450,8 @@ class ManualApartmentInput(BaseModel):
     size_m2: float = Field(..., gt=0)
     notes: str = ""
     status: str = "Interested"
+    lat: float | None = None
+    lon: float | None = None
 
     @field_validator("url")
     @classmethod
@@ -440,6 +518,9 @@ class VuokraoviScraper:
         if price_val <= 0 or size_val <= 0:
             raise ValueError("Could not extract price or size. Use manual entry (Option A).")
 
+        # Phase 4: Geocode via HSL Digitransit Pelias API
+        lat, lon = geocode_address_hsl(title, asuinalue)
+
         # Phase 3: Extract structured specs via regex & compile dossier
         specs_data = extract_specs_from_text(text)
         dossier = generate_dossier(
@@ -447,7 +528,9 @@ class VuokraoviScraper:
             size_m2=size_val,
             asuinalue=asuinalue.title(),
             raw_text=text,
-            extracted_specs=specs_data
+            extracted_specs=specs_data,
+            lat=lat,
+            lon=lon
         )
 
         return {
@@ -458,6 +541,8 @@ class VuokraoviScraper:
             "size_m2": size_val,
             "notes": "",
             "status": "Interested",
+            "lat": lat,
+            "lon": lon,
             "specs": dossier
         }
 
@@ -483,7 +568,7 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
     res = sb.table("apartments").select("*").order("asuinalue", desc=False).execute()
     rows = res.data or []
 
-    # Retrieve votes from apartment_votes table if available
+    # Phase 2: Partner votes
     votes_by_apt = {}
     try:
         votes_res = sb.table("apartment_votes").select("*").execute()
@@ -494,7 +579,6 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
             if apt_id and user_name:
                 votes_by_apt.setdefault(apt_id, {})[user_name] = vote_val
     except Exception:
-        # If apartment_votes table is not yet created or queries fail, gracefully continue
         pass
 
     grouped = {}
@@ -506,11 +590,40 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
         if not item.get("added_by"):
             item["added_by"] = "Leo"
 
-        # Populate votes and mutual match flag
+        # Partner voting and mutual match status (Phase 2)
         apt_id = item.get("id")
         apt_votes = votes_by_apt.get(apt_id, {})
         item["votes"] = apt_votes
         item["is_mutual_match"] = (apt_votes.get("Leo") == "love" and apt_votes.get("Ella") == "love")
+
+        # Phase 4: Ensure lat & lon coordinates exist
+        lat = item.get("lat")
+        lon = item.get("lon")
+        if lat is None or lon is None:
+            # Check inside specs first
+            specs_obj = item.get("specs") or {}
+            if specs_obj.get("lat") and specs_obj.get("lon"):
+                lat = specs_obj["lat"]
+                lon = specs_obj["lon"]
+            else:
+                lat, lon = geocode_address_hsl(item.get("title", ""), area)
+            item["lat"] = lat
+            item["lon"] = lon
+
+        # Phase 3: Ensure structured dossier is present even on older records
+        if not item.get("specs"):
+            item["specs"] = generate_dossier(
+                price=price,
+                size_m2=size,
+                asuinalue=area,
+                raw_text=f"{item.get('title', '')} {item.get('notes', '')}",
+                lat=lat,
+                lon=lon
+            )
+        else:
+            if "lat" not in item["specs"]:
+                item["specs"]["lat"] = lat
+                item["specs"]["lon"] = lon
 
         grouped.setdefault(area, []).append(item)
 
@@ -525,12 +638,20 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
     user = get_current_user(authorization)
     sb = get_supabase()
 
+    # Phase 4: Geocode via HSL Digitransit Pelias
+    lat = payload.lat
+    lon = payload.lon
+    if lat is None or lon is None:
+        lat, lon = geocode_address_hsl(payload.title, payload.asuinalue)
+
     # Phase 3: Generate heuristic dossier for manual entries
     dossier = generate_dossier(
         price=payload.price,
         size_m2=payload.size_m2,
         asuinalue=payload.asuinalue.strip().title(),
-        raw_text=f"{payload.title} {payload.notes}"
+        raw_text=f"{payload.title} {payload.notes}",
+        lat=lat,
+        lon=lon
     )
 
     data = {
@@ -542,18 +663,23 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         "notes": payload.notes.strip(),
         "status": payload.status.strip(),
         "added_by": user["display_name"],
+        "lat": lat,
+        "lon": lon,
         "specs": dossier
     }
 
     try:
         res = sb.table("apartments").upsert(data, on_conflict="url").execute()
     except Exception as exc:
-        # Fallback if specs column is not yet provisioned in Supabase table
-        if "specs" in str(exc).lower():
-            fallback_data = {k: v for k, v in data.items() if k != "specs"}
-            res = sb.table("apartments").upsert(fallback_data, on_conflict="url").execute()
-        else:
-            raise
+        err_msg = str(exc).lower()
+        # Fallback if lat/lon or specs columns are not yet provisioned in Supabase table schema
+        fallback_data = dict(data)
+        if "lat" in err_msg or "lon" in err_msg:
+            fallback_data.pop("lat", None)
+            fallback_data.pop("lon", None)
+        if "specs" in err_msg:
+            fallback_data.pop("specs", None)
+        res = sb.table("apartments").upsert(fallback_data, on_conflict="url").execute()
 
     return {"status": "saved", "data": res.data}
 
@@ -569,12 +695,14 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
         try:
             res = sb.table("apartments").upsert(extracted, on_conflict="url").execute()
         except Exception as exc:
-            # Fallback if specs column is not yet provisioned in Supabase table
-            if "specs" in str(exc).lower():
-                fallback_data = {k: v for k, v in extracted.items() if k != "specs"}
-                res = sb.table("apartments").upsert(fallback_data, on_conflict="url").execute()
-            else:
-                raise
+            err_msg = str(exc).lower()
+            fallback_data = dict(extracted)
+            if "lat" in err_msg or "lon" in err_msg:
+                fallback_data.pop("lat", None)
+                fallback_data.pop("lon", None)
+            if "specs" in err_msg:
+                fallback_data.pop("specs", None)
+            res = sb.table("apartments").upsert(fallback_data, on_conflict="url").execute()
 
         return {"status": "saved", "data": res.data, "asuinalue": extracted["asuinalue"]}
     except Exception as exc:
@@ -597,7 +725,6 @@ def cast_vote(payload: ApartmentVoteInput, authorization: str = Header(None)):
     except Exception:
         sb.table("apartment_votes").upsert(vote_data).execute()
 
-    # Calculate mutual match
     is_match = False
     try:
         votes_res = sb.table("apartment_votes").select("*").eq("apartment_id", payload.apartment_id).execute()

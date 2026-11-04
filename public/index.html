@@ -4,10 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Helsinki Apartment Tracker — Leo & Ella</title>
+    
+    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Google Fonts: Quicksand -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet.js & Leaflet.markercluster via Free CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #f0fdf4 0%, #fdfbf7 100%);
@@ -45,6 +57,20 @@
             --match-glow: rgba(16, 185, 129, 0.35);
             --modal-bg: #ffffff;
             --modal-header-bg: #f8fafc;
+
+            /* Phase 3 Dossier Colors */
+            --dossier-bg: #f8fafc;
+            --dossier-border: #e2e8f0;
+            --pro-bg: #ecfdf5;
+            --pro-border: #a7f3d0;
+            --pro-text: #065f46;
+            --con-bg: #fff1f2;
+            --con-border: #fecdd3;
+            --con-text: #9f1239;
+
+            /* Phase 4 Map Colors */
+            --map-container-bg: #ffffff;
+            --map-border: #bbf7d0;
         }
 
         [data-theme="dark"] {
@@ -83,6 +109,20 @@
             --match-glow: rgba(52, 211, 153, 0.45);
             --modal-bg: #064e3b;
             --modal-header-bg: #022c22;
+
+            /* Phase 3 Dossier Colors (Dark) */
+            --dossier-bg: #022c22;
+            --dossier-border: #065f46;
+            --pro-bg: #064e3b;
+            --pro-border: #059669;
+            --pro-text: #a7f3d0;
+            --con-bg: #4c0519;
+            --con-border: #881337;
+            --con-text: #fecdd3;
+
+            /* Phase 4 Map Colors (Dark) */
+            --map-container-bg: #064e3b;
+            --map-border: #065f46;
         }
 
         body { font-family: 'Quicksand', system-ui, sans-serif; background: var(--bg-gradient); color: var(--text-color); margin: 0; padding: 20px; min-height: 100vh; padding-bottom: 120px; }
@@ -104,9 +144,174 @@
         .btn-edit:hover { background: var(--btn-edit-hover); }
         .btn-del { background: var(--btn-del); color: var(--btn-del-text); padding: 8px 16px; margin: 0; width: auto; font-weight: 500; }
         .btn-del:hover { background: var(--btn-del-hover); }
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--card-bg); padding: 16px; border-radius: 16px; flex-wrap: wrap; gap: 10px; border: 1px solid var(--card-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--card-bg); padding: 16px; border-radius: 16px; flex-wrap: wrap; gap: 12px; border: 1px solid var(--card-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .toolbar select { width: auto; margin: 0; padding: 8px 12px; }
         
+        /* Map Toggle Button */
+        .btn-toggle-map {
+            width: auto;
+            margin: 0;
+            padding: 8px 16px;
+            background: var(--pill-bg);
+            color: var(--text-color);
+            border: 1px solid var(--pill-border);
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-toggle-map:hover, .btn-toggle-map.active {
+            background: var(--btn-primary);
+            color: #ffffff;
+            border-color: var(--btn-primary);
+        }
+
+        /* Map Container */
+        .map-section {
+            margin-bottom: 24px;
+            background: var(--map-container-bg);
+            border: 1px solid var(--map-border);
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.08);
+            display: none;
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .map-section.visible {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #leaflet-map {
+            height: 440px;
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            z-index: 10;
+        }
+        .map-legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--msg-color);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-match { background: #10b981; box-shadow: 0 0 6px #10b981; }
+        .dot-interested { background: #3b82f6; }
+        .dot-applied { background: #10b981; }
+        .dot-viewing { background: #fbbf24; }
+        .dot-not { background: #94a3b8; }
+
+        /* Custom Leaflet Pin Styling */
+        .custom-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: white;
+            font-weight: 800;
+            font-size: 0.8rem;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid white;
+            transition: transform 0.2s;
+        }
+        .custom-pin:hover {
+            transform: scale(1.15);
+            z-index: 1000 !important;
+        }
+        .custom-pin.pin-match {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: 2.5px solid #ffffff;
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.7);
+            animation: pulse-pin 2s infinite;
+        }
+        @keyframes pulse-pin {
+            0%, 100% { box-shadow: 0 0 14px rgba(16, 185, 129, 0.7); }
+            50% { box-shadow: 0 0 22px rgba(16, 185, 129, 0.95); }
+        }
+        .custom-pin.pin-interested { background: #3b82f6; }
+        .custom-pin.pin-applied { background: #10b981; }
+        .custom-pin.pin-viewing { background: #f59e0b; color: #000; }
+        .custom-pin.pin-not { background: #64748b; }
+
+        /* Leaflet Popup Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+            font-family: 'Quicksand', system-ui, sans-serif;
+            padding: 4px;
+        }
+        .popup-card {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 220px;
+        }
+        .popup-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #0f172a;
+            margin: 0;
+            line-height: 1.3;
+        }
+        .popup-specs {
+            display: flex;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #15803d;
+            margin-top: 2px;
+        }
+        .popup-jump-btn {
+            background: #16a34a;
+            color: white;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 10px;
+            border: none;
+            margin-top: 6px;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+        }
+        .popup-jump-btn:hover {
+            background: #15803d;
+        }
+
+        /* Card highlight animation when jumped to from map */
+        @keyframes card-highlight-glow {
+            0% { box-shadow: 0 0 0px transparent; }
+            30% { box-shadow: 0 0 30px #10b981; transform: scale(1.02); }
+            100% { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transform: scale(1); }
+        }
+        .card-highlight-active {
+            animation: card-highlight-glow 2s ease-in-out;
+        }
+
         /* Badges */
         .badge { display: inline-block; padding: 6px 12px; border-radius: 8px; font-size: 0.9rem; margin-right: 8px; font-weight: 600; }
         .bg-spec { background: var(--badge-spec-bg); color: var(--badge-spec-text); }
@@ -143,7 +348,7 @@
         /* Snap Card & Mutual Match Styling */
         .snap-card {
             flex: 0 0 92%;
-            max-width: 420px;
+            max-width: 440px;
             scroll-snap-align: center;
             background: var(--card-bg);
             padding: 20px;
@@ -158,7 +363,7 @@
             position: relative;
             transition: all 0.25s ease-in-out;
         }
-        @media (min-width: 768px) { .snap-card { flex: 0 0 380px; scroll-snap-align: start; } }
+        @media (min-width: 768px) { .snap-card { flex: 0 0 400px; scroll-snap-align: start; } }
 
         .snap-card.mutual-match {
             border: 2.5px solid var(--match-border) !important;
@@ -283,6 +488,132 @@
             box-shadow: 0 2px 6px rgba(248, 113, 113, 0.4);
         }
 
+        /* Phase 3: Dossier Accordion */
+        .dossier-box {
+            margin-top: 6px;
+            border: 1px solid var(--dossier-border);
+            background: var(--dossier-bg);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all 0.25s ease-in-out;
+        }
+        .dossier-header-btn {
+            width: 100%;
+            background: transparent;
+            color: var(--text-color);
+            border: none;
+            padding: 10px 14px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .dossier-header-btn:hover {
+            background: rgba(0,0,0,0.03);
+            transform: none;
+        }
+        .dossier-counts {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .dossier-badge-pro {
+            background: var(--pro-bg);
+            color: var(--pro-text);
+            border: 1px solid var(--pro-border);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        .dossier-badge-con {
+            background: var(--con-bg);
+            color: var(--con-text);
+            border: 1px solid var(--con-border);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        .dossier-arrow {
+            transition: transform 0.25s ease;
+            font-size: 0.8rem;
+            color: var(--msg-color);
+        }
+        .dossier-arrow.open {
+            transform: rotate(180deg);
+        }
+        .dossier-body {
+            display: none;
+            padding: 12px 14px;
+            border-top: 1px solid var(--dossier-border);
+            font-size: 0.85rem;
+            line-height: 1.45;
+        }
+        .dossier-body.open {
+            display: block;
+        }
+        .spec-pills-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .spec-pill {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .dossier-vibe {
+            font-size: 0.8rem;
+            font-style: italic;
+            color: var(--msg-color);
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed var(--dossier-border);
+        }
+        .eval-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .eval-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            font-size: 0.8rem;
+            line-height: 1.35;
+            padding: 6px 8px;
+            border-radius: 8px;
+        }
+        .eval-item.pro {
+            background: var(--pro-bg);
+            border: 1px solid var(--pro-border);
+            color: var(--pro-text);
+        }
+        .eval-item.con {
+            background: var(--con-bg);
+            border: 1px solid var(--con-border);
+            color: var(--con-text);
+        }
+        .eval-icon {
+            font-weight: 800;
+            font-size: 0.9rem;
+            line-height: 1;
+        }
+
         .apt-info { display: flex; flex-direction: column; gap: 8px; }
         .apt-header-badges { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
         .apt-title-link { font-size: 1.15rem; line-height: 1.35; margin: 2px 0; }
@@ -377,7 +708,7 @@
             background: var(--modal-bg);
             color: var(--text-color);
             width: 100%;
-            max-width: 1050px;
+            max-width: 1100px;
             max-height: 90vh;
             border-radius: 20px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
@@ -470,7 +801,7 @@
             z-index: 10;
             background: var(--modal-header-bg);
             box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-            min-width: 220px;
+            min-width: 240px;
         }
         .comparison-table tr.hidden-row {
             display: none;
@@ -558,13 +889,14 @@
             <h3>Vuokraovi Auto-Scraper</h3>
             <input id="s-url" placeholder="Paste Vuokraovi Link (https://www.vuokraovi.com/kohde/...)">
             <input id="s-area" placeholder="Optional: Fallback asuinalue (e.g. Kruunuvuori)">
-            <button onclick="submitScrape()">Auto-Fetch, Dossier & Save</button>
+            <button onclick="submitScrape()">Auto-Fetch, Geocode & Save</button>
             <p id="s-status" class="msg" style="color: #94a3b8;"></p>
         </div>
     </div>
 
+    <!-- Toolbar with Sorting & Map View Toggle -->
     <div class="toolbar">
-        <div>
+        <div class="toolbar-left">
             <span>Sort inside each asuinalue by:</span>
             <select id="sort-select" onchange="loadApartments()">
                 <option value="price-false">Price: Low to High (€/kk)</option>
@@ -573,6 +905,23 @@
                 <option value="size_m2-false">Size: Smallest First (m²)</option>
                 <option value="eur_per_m2-false">Best Value: Lowest €/m²</option>
             </select>
+            <button id="btn-toggle-map" onclick="toggleMapView()" class="btn-toggle-map">
+                🗺️ <span>Open Map View</span>
+            </button>
+        </div>
+        <div id="mutual-count-badge" style="font-weight: 700; font-size: 0.9rem; color: #10b981;"></div>
+    </div>
+
+    <!-- Phase 4: Collapsible Leaflet Map Section -->
+    <div id="map-section" class="map-section">
+        <div id="leaflet-map"></div>
+        <div class="map-legend">
+            <span class="legend-item"><span class="legend-dot dot-match"></span> 💚 Mutual Match</span>
+            <span class="legend-item"><span class="legend-dot dot-interested"></span> Interested</span>
+            <span class="legend-item"><span class="legend-dot dot-applied"></span> Applied</span>
+            <span class="legend-item"><span class="legend-dot dot-viewing"></span> Viewing Booked</span>
+            <span class="legend-item"><span class="legend-dot dot-not"></span> Not Interested</span>
+            <span style="color: var(--msg-color); font-size: 0.75rem;">• Geocoded via HSL Digitransit</span>
         </div>
         <div id="mutual-count-badge" style="font-weight: 700; font-size: 0.9rem; color: #10b981;">
             <!-- Mutual matches counter -->
@@ -603,9 +952,7 @@
                 <button class="modal-close-btn" onclick="closeComparisonModal()" title="Close">&times;</button>
             </div>
         </div>
-        <div class="modal-body" id="modal-table-container">
-            <!-- Table dynamically injected here -->
-        </div>
+        <div class="modal-body" id="modal-table-container"></div>
     </div>
 </div>
 
@@ -617,9 +964,14 @@ const sb = supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_PUBLIC_KEY)
 let currentSession = null;
 let currentDisplayName = "Leo";
 
-// Global cache for apartment entities and votes
-let apartmentsCache = {}; // { id: aptObject }
-let selectedForComparison = new Set(); // Set of apt IDs (max 3)
+let apartmentsCache = {};
+let selectedForComparison = new Set();
+let openedDossiers = new Set();
+
+// Map & Clustering state (Phase 4)
+let leafletMap = null;
+let clusterGroup = null;
+let isMapVisible = false;
 
 // Theme Toggle Logic
 function initTheme() {
@@ -702,7 +1054,6 @@ function setupRealtime() {
           }
       });
 
-    // 2. Listen for partner vote changes (Phase 2)
     sb.channel("public:apartment_votes")
       .on("postgres_changes", { event: "*", schema: "public", table: "apartment_votes" }, (payload) => {
           const voteRecord = payload.new;
@@ -713,7 +1064,6 @@ function setupRealtime() {
       .subscribe();
 }
 
-// Optimistic vote handling
 function handleIncomingVote(apartmentId, userName, voteTier) {
     const apt = apartmentsCache[apartmentId];
     if (!apt) return;
@@ -724,6 +1074,7 @@ function handleIncomingVote(apartmentId, userName, voteTier) {
 
     updateCardUI(apt);
     updateMutualMatchesCount();
+    updateMapPins();
 
     if (document.getElementById("compare-modal").classList.contains("open")) {
         renderComparisonModalContent();
@@ -735,8 +1086,6 @@ async function castVote(apartmentId, voteTier) {
     if (!apt) return;
 
     if (!apt.votes) apt.votes = {};
-    
-    // Toggle vote if clicking the same button
     const currentVote = apt.votes[currentDisplayName];
     const newVote = currentVote === voteTier ? "neutral" : voteTier;
     apt.votes[currentDisplayName] = newVote;
@@ -744,8 +1093,8 @@ async function castVote(apartmentId, voteTier) {
 
     updateCardUI(apt);
     updateMutualMatchesCount();
+    updateMapPins();
 
-    // 1. Direct Supabase write
     try {
         await sb.from("apartment_votes").upsert({
             apartment_id: apartmentId,
@@ -757,7 +1106,6 @@ async function castVote(apartmentId, voteTier) {
         console.warn("Direct Supabase vote upsert notice:", e);
     }
 
-    // 2. Also call backend API endpoint
     try {
         const headers = await apiHeaders();
         await fetch("/api/apartments/vote", {
@@ -774,7 +1122,6 @@ function updateCardUI(apt) {
     const card = document.getElementById(`apt-card-${apt.id}`);
     if (!card) return;
 
-    // Mutual Match Highlight & Emerald Border
     if (apt.is_mutual_match) {
         card.classList.add("mutual-match");
         if (!card.querySelector(".mutual-badge")) {
@@ -790,7 +1137,6 @@ function updateCardUI(apt) {
         if (existingBadge) existingBadge.remove();
     }
 
-    // Update vote buttons active state
     const userVote = apt.votes?.[currentDisplayName];
     const btnLove = card.querySelector(".btn-vote-love");
     const btnNeutral = card.querySelector(".btn-vote-neutral");
@@ -800,7 +1146,6 @@ function updateCardUI(apt) {
     if (btnNeutral) btnNeutral.className = `vote-btn btn-vote-neutral ${userVote === 'neutral' ? 'active-neutral' : ''}`;
     if (btnPass) btnPass.className = `vote-btn btn-vote-pass ${userVote === 'pass' ? 'active-pass' : ''}`;
 
-    // Update partner status text
     const summary = card.querySelector(".vote-status-summary");
     if (summary) {
         const leo = formatVoteEmoji(apt.votes?.["Leo"]);
@@ -825,19 +1170,147 @@ function updateMutualMatchesCount() {
     }
 }
 
-function formatVoteEmoji(vote) {
-    if (vote === "love") return "💚 Love";
-    if (vote === "neutral") return "🟡 Neutral";
-    if (vote === "pass") return "🔴 Pass";
-    return "⏳ None";
+// -------------------------------------------------------------
+// Phase 4: Leaflet Map & HSL Clustering Logic
+// -------------------------------------------------------------
+
+function toggleMapView() {
+    const mapSection = document.getElementById("map-section");
+    const btn = document.getElementById("btn-toggle-map");
+
+    if (isMapVisible) {
+        mapSection.classList.remove("visible");
+        btn.classList.remove("active");
+        btn.innerHTML = `🗺️ <span>Open Map View</span>`;
+        isMapVisible = false;
+    } else {
+        mapSection.classList.add("visible");
+        btn.classList.add("active");
+        btn.innerHTML = `🗺️ <span>Hide Map View</span>`;
+        isMapVisible = true;
+        initOrUpdateMap();
+    }
 }
 
-function updateMutualMatchesCount() {
-    const all = Object.values(apartmentsCache);
-    const mutualCount = all.filter(a => a.is_mutual_match).length;
-    const badge = document.getElementById("mutual-count-badge");
-    if (badge) {
-        badge.innerHTML = mutualCount > 0 ? `✨ <strong>${mutualCount}</strong> Mutual Matches found!` : "";
+function initOrUpdateMap() {
+    if (!leafletMap) {
+        // Initialize Leaflet map centered in Helsinki
+        leafletMap = L.map('leaflet-map', {
+            center: [60.185, 24.94],
+            zoom: 12,
+            zoomControl: true
+        });
+
+        // CARTO Voyager Tile Layer with User API Key
+        const cartoKey = "cb1_51x1_1_2bcf3364a1a5671df78c167b";
+        L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoKey}`, {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(leafletMap);
+
+        // MarkerCluster Group
+        clusterGroup = L.markerClusterGroup({
+            maxClusterRadius: 40,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true
+        });
+        leafletMap.addLayer(clusterGroup);
+    }
+
+    setTimeout(() => {
+        leafletMap.invalidateSize();
+        updateMapPins();
+    }, 200);
+}
+
+function updateMapPins() {
+    if (!clusterGroup) return;
+    clusterGroup.clearLayers();
+
+    const apts = Object.values(apartmentsCache);
+    if (apts.length === 0) return;
+
+    const bounds = [];
+
+    apts.forEach(apt => {
+        const lat = apt.lat || apt.specs?.lat;
+        const lon = apt.lon || apt.specs?.lon;
+        if (!lat || !lon) return;
+
+        bounds.push([lat, lon]);
+
+        // Pin styling based on status and mutual match state
+        const isMatch = apt.is_mutual_match === true;
+        let pinClass = "pin-interested";
+        let iconContent = "📍";
+
+        if (isMatch) {
+            pinClass = "pin-match";
+            iconContent = "💚";
+        } else if (apt.status?.startsWith("Applied")) {
+            pinClass = "pin-applied";
+            iconContent = "✓";
+        } else if (apt.status?.startsWith("Viewing")) {
+            pinClass = "pin-viewing";
+            iconContent = "👁";
+        } else if (apt.status?.startsWith("Not")) {
+            pinClass = "pin-not";
+            iconContent = "✕";
+        }
+
+        const customIcon = L.divIcon({
+            className: `custom-pin ${pinClass}`,
+            html: `<span>${iconContent}</span>`,
+            iconSize: isMatch ? [32, 32] : [26, 26],
+            iconAnchor: isMatch ? [16, 16] : [13, 13],
+            popupAnchor: [0, -14]
+        });
+
+        const marker = L.marker([lat, lon], { icon: customIcon });
+
+        const leoVote = formatVoteEmoji(apt.votes?.["Leo"]);
+        const ellaVote = formatVoteEmoji(apt.votes?.["Ella"]);
+
+        const popupHtml = `
+            <div class="popup-card">
+                <div class="popup-title">${escapeHtml(apt.title)}</div>
+                <div style="font-size: 0.8rem; color: #64748b;">📍 ${escapeHtml(apt.asuinalue)}</div>
+                
+                <div class="popup-specs">
+                    <span>${apt.price} €/kk</span> • <span>${apt.size_m2} m²</span> • <span>${apt.eur_per_m2} €/m²</span>
+                </div>
+
+                <div style="font-size: 0.75rem; margin-top: 4px;">
+                    <div><strong>Status:</strong> ${escapeHtml(apt.status)}</div>
+                    <div><strong>Votes:</strong> Leo (${leoVote}) • Ella (${ellaVote})</div>
+                    ${isMatch ? `<div style="color: #10b981; font-weight: 800; margin-top: 2px;">💚 Mutual Match!</div>` : ''}
+                </div>
+
+                <button class="popup-jump-btn" onclick="jumpToApartmentCard(${apt.id})">
+                    📍 Jump to Listing Card
+                </button>
+            </div>
+        `;
+
+        marker.bindPopup(popupHtml);
+        clusterGroup.addLayer(marker);
+    });
+
+    if (bounds.length > 0 && leafletMap) {
+        leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    }
+}
+
+function jumpToApartmentCard(aptId) {
+    const card = document.getElementById(`apt-card-${aptId}`);
+    if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.remove("card-highlight-active");
+        void card.offsetWidth; // trigger reflow
+        card.classList.add("card-highlight-active");
+        setTimeout(() => card.classList.remove("card-highlight-active"), 2200);
     }
 }
 
@@ -867,7 +1340,6 @@ function buildDossierHtml(apt) {
     const cons = specs.cons || [];
     const isOpen = openedDossiers.has(apt.id);
 
-    // Spec Badges
     const floorBadge = specs.floor_str ? `🏢 Kerros: ${escapeHtml(specs.floor_str)}` : '🏢 Kerrostieto -';
     const elevatorBadge = specs.has_elevator === true ? '🛗 Hissi' : specs.has_elevator === false ? 'Ei hissiä' : '🛗 Hissi -';
     const waterBadge = specs.water_included ? '💧 Vesi sisältyy' : (specs.water_fee ? `💧 ${escapeHtml(specs.water_fee)}` : '💧 Vesi -');
@@ -1054,7 +1526,7 @@ async function loadApartments() {
                         <span class="badge bg-spec">${apt.eur_per_m2} €/m²</span>
                     </div>
 
-                    <!-- 3-Tier Voting Row (Phase 2) -->
+                    <!-- 3-Tier Partner Voting (Phase 2) -->
                     <div class="vote-section">
                         <div class="vote-header">
                             <span>Your Vote:</span>
@@ -1077,6 +1549,9 @@ async function loadApartments() {
                         </div>
                     </div>
 
+                    <!-- Phase 3: Rules-Based Apartment Dossier / Brain Accordion -->
+                    ${buildDossierHtml(apt)}
+
                     ${notesHtml}
                 </div>
                 <div class="apt-actions">
@@ -1094,6 +1569,9 @@ async function loadApartments() {
     if (jumpBar.firstChild) jumpBar.firstChild.classList.add("active");
     updateMutualMatchesCount();
     updateDock();
+    if (isMapVisible) {
+        updateMapPins();
+    }
 }
 
 function escapeHtml(str) {
@@ -1140,7 +1618,7 @@ async function submitManual() {
         return;
     }
     status.style.color = "#4ade80";
-    status.textContent = "Saved to board & dossier generated!";
+    status.textContent = "Saved & geocoded to map!";
     ["m-url", "m-title", "m-area", "m-price", "m-size", "m-notes"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("m-status").value = "Interested";
     document.getElementById("form-title").textContent = "Manual Entry / Edit";
@@ -1157,7 +1635,7 @@ async function submitScrape() {
         return;
     }
     status.style.color = "#94a3b8";
-    status.textContent = "Fetching listing & compiling dossier...";
+    status.textContent = "Fetching listing, geocoding via HSL...";
     const headers = await apiHeaders();
     const res = await fetch("/api/apartments/scrape", {
         method: "POST",
@@ -1171,7 +1649,7 @@ async function submitScrape() {
         return;
     }
     status.style.color = "#4ade80";
-    status.textContent = `Saved to ${data.asuinalue}! Dossier compiled.`;
+    status.textContent = `Saved to ${data.asuinalue}! Plotted on map.`;
     document.getElementById("s-url").value = "";
     document.getElementById("s-area").value = "";
     loadApartments();
@@ -1182,11 +1660,12 @@ async function deleteApt(id) {
     const headers = await apiHeaders();
     await fetch(`/api/apartments/${id}`, { method: "DELETE", headers });
     selectedForComparison.delete(id);
+    openedDossiers.delete(id);
     loadApartments();
 }
 
 // -------------------------------------------------------------
-// Comparison Dock & Modal Logic (Phase 2)
+// Comparison Dock & Modal Logic (Phase 2 + Phase 3 specs)
 // -------------------------------------------------------------
 
 function toggleCompare(id, isChecked) {
@@ -1265,7 +1744,6 @@ function renderComparisonModalContent() {
         return;
     }
 
-    // Determine minimum values for delta computation
     const prices = apts.map(a => a.price);
     const minPrice = Math.min(...prices);
 
@@ -1274,7 +1752,6 @@ function renderComparisonModalContent() {
 
     const showDiffsOnly = document.getElementById("diff-toggle")?.checked || false;
 
-    // Attribute definitions for side-by-side comparison
     const specs = [
         {
             label: "Price (€/kk)",
@@ -1312,14 +1789,40 @@ function renderComparisonModalContent() {
             isDifferent: () => new Set(apts.map(a => a.size_m2)).size > 1
         },
         {
-            label: "Asuinalue (District)",
-            render: (a) => `📍 ${escapeHtml(a.asuinalue)}`,
-            isDifferent: () => new Set(apts.map(a => a.asuinalue)).size > 1
+            label: "Floor & Elevator",
+            render: (a) => {
+                const s = a.specs || {};
+                const floorStr = s.floor_str ? `Kerros ${escapeHtml(s.floor_str)}` : 'Kerros -';
+                const elStr = s.has_elevator === true ? '🛗 Hissi' : s.has_elevator === false ? 'Ei hissiä' : '';
+                return `<div>${floorStr}</div><div>${elStr}</div>`;
+            },
+            isDifferent: () => new Set(apts.map(a => `${a.specs?.floor_str || ''}-${a.specs?.has_elevator}`)).size > 1
         },
         {
-            label: "Status",
-            render: (a) => `<span class="status-badge status-${a.status.split(' ')[0]}">${escapeHtml(a.status)}</span>`,
-            isDifferent: () => new Set(apts.map(a => a.status)).size > 1
+            label: "Water & Utilities",
+            render: (a) => {
+                const s = a.specs || {};
+                return s.water_included ? `<span style="color:#10b981; font-weight:700;">💧 Vesi sisältyy</span>` : (s.water_fee ? `💧 ${escapeHtml(s.water_fee)}` : '💧 Ei tietoa');
+            },
+            isDifferent: () => new Set(apts.map(a => a.specs?.water_included ? 'inc' : (a.specs?.water_fee || ''))).size > 1
+        },
+        {
+            label: "Balcony & Sauna",
+            render: (a) => {
+                const s = a.specs || {};
+                const b = s.balcony_type || (s.has_balcony ? 'Parveke' : 'Ei parveketta');
+                const sa = s.sauna_type || (s.has_sauna ? 'Oma sauna' : 'Ei saunaa');
+                return `<div>${escapeHtml(b)}</div><div>${escapeHtml(sa)}</div>`;
+            },
+            isDifferent: () => new Set(apts.map(a => `${a.specs?.balcony_type}-${a.specs?.sauna_type}`)).size > 1
+        },
+        {
+            label: "Pet Policy",
+            render: (a) => {
+                const s = a.specs || {};
+                return s.pets_allowed === true ? '🐾 Lemmikit sallittu' : s.pets_allowed === false ? '🚫 Ei lemmikkejä' : '🐾 Sopimuksen mukaan';
+            },
+            isDifferent: () => new Set(apts.map(a => `${a.specs?.pets_allowed}`)).size > 1
         },
         {
             label: "Partner Votes",
@@ -1335,14 +1838,17 @@ function renderComparisonModalContent() {
             }
         },
         {
-            label: "Added By",
-            render: (a) => escapeHtml(a.added_by || "Leo"),
-            isDifferent: () => new Set(apts.map(a => a.added_by || "Leo")).size > 1
-        },
-        {
-            label: "Notes",
-            render: (a) => a.notes ? `<div style="font-size: 0.85rem; line-height: 1.4;">${escapeHtml(a.notes)}</div>` : '<em style="color: var(--msg-color);">None</em>',
-            isDifferent: () => new Set(apts.map(a => (a.notes || "").trim())).size > 1
+            label: "Dossier Pros & Cons",
+            render: (a) => {
+                const s = a.specs || {};
+                const p = (s.pros || []).length;
+                const c = (s.cons || []).length;
+                return `
+                    <div style="font-weight:700;">+${p} Pros / -${c} Cons</div>
+                    <div style="font-size: 0.75rem; color: var(--msg-color); margin-top: 4px;">${escapeHtml(s.district_vibe || '')}</div>
+                `;
+            },
+            isDifferent: () => new Set(apts.map(a => `${(a.specs?.pros || []).length}-${(a.specs?.cons || []).length}`)).size > 1
         }
     ];
 
@@ -1350,7 +1856,7 @@ function renderComparisonModalContent() {
         <table class="comparison-table">
             <thead>
                 <tr>
-                    <th class="col-header" style="width: 170px;">Listing</th>
+                    <th class="col-header" style="width: 170px;">Specification</th>
                     ${apts.map(a => `
                         <th class="col-header">
                             ${a.is_mutual_match ? `<div class="mutual-badge" style="margin-bottom: 6px;">💚 Mutual Match</div>` : ''}
