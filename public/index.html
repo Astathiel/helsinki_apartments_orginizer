@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1241,7 +1241,8 @@ function initOrUpdateMap() {
 
         // MarkerCluster Group
         clusterGroup = L.markerClusterGroup({
-            maxClusterRadius: 40,
+            maxClusterRadius: 35,
+            disableClusteringAtZoom: 14,
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: false,
             zoomToBoundsOnClick: true
@@ -1265,8 +1266,8 @@ function updateMapPins() {
     const bounds = [];
 
     apts.forEach(apt => {
-        const lat = apt.lat || apt.specs?.lat;
-        const lon = apt.lon || apt.specs?.lon;
+        const lat = apt.lat || apt.latitude || apt.specs?.lat;
+        const lon = apt.lon || apt.longitude || apt.specs?.lon;
         if (!lat || !lon) return;
 
         bounds.push([lat, lon]);

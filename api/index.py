@@ -62,18 +62,24 @@ def normalize_url(raw_url: str) -> str:
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), clean_path, "", ""))
 
 # =====================================================================
-# PHASE 4: HSL DIGITRANSIT PELIAS GEOCODING & DISTRICT COORDINATES
+# =====================================================================
+# PHASE 4: MULTI-LAYER GEOCODING ENGINE & DISTRICT COORDINATES
 # =====================================================================
 
 HELSINKI_DISTRICT_COORDINATES = {
     "Pohjois-Pasila": (60.2135, 24.9221),
     "Pasila": (60.1988, 24.9334),
+    "Keski-Pasila": (60.1994, 24.9283),
+    "Länsi-Pasila": (60.2010, 24.9200),
+    "Itä-Pasila": (60.2000, 24.9380),
     "Kruunuvuorenranta": (60.1752, 25.0210),
     "Kruunuvuori": (60.1752, 25.0210),
     "Oulunkylä": (60.2285, 24.9634),
     "Sörnäinen": (60.1872, 24.9610),
     "Kallio": (60.1841, 24.9523),
     "Töölö": (60.1812, 24.9215),
+    "Taka-Töölö": (60.1850, 24.9180),
+    "Etu-Töölö": (60.1740, 24.9240),
     "Lauttasaari": (60.1584, 24.8722),
     "Punavuori": (60.1594, 24.9381),
     "Kamppi": (60.1685, 24.9312),
@@ -88,71 +94,136 @@ HELSINKI_DISTRICT_COORDINATES = {
     "Kumpula": (60.2085, 24.9620),
     "Meilahti": (60.1910, 24.9045),
     "Munkkiniemi": (60.1990, 24.8760),
+    "Munkkivuori": (60.2070, 24.8760),
     "Haaga": (60.2180, 24.8980),
+    "Pohjois-Haaga": (60.2290, 24.8930),
+    "Etelä-Haaga": (60.2110, 24.9010),
     "Herttoniemi": (60.1940, 25.0310),
+    "Herttoniemenranta": (60.1882, 25.0382),
     "Vuosaari": (60.2090, 25.1430),
     "Malmi": (60.2510, 25.0110),
+    "Pukinmäki": (60.2450, 24.9920),
+    "Pihlajamäki": (60.2360, 25.0060),
+    "Pihlajisto": (60.2310, 25.0030),
+    "Viikki": (60.2341, 25.0361),
+    "Suutarila": (60.2760, 24.9980),
+    "Siltamäki": (60.2740, 24.9850),
+    "Kuninkaantammi": (60.2594, 24.8864),
+    "Kaarela": (60.2450, 24.8720),
+    "Malminkartano": (60.2460, 24.8620),
+    "Kannelmäki": (60.2390, 24.8780),
+    "Pikku Huopalahti": (60.2000, 24.8950),
+    "Ruskeasuo": (60.1980, 24.9040),
+    "Kluuvi": (60.1700, 24.9450),
+    "Kruununhaka": (60.1730, 24.9560),
+    "Katajanokka": (60.1670, 24.9690),
     "Helsinki": (60.1699, 24.9384)
 }
 
+def clean_street_address(title: str, asuinalue: str) -> str:
+    """
+    Extracts the clean street name and number from Vuokraovi title patterns, e.g.:
+    'Vuokrataan Kerrostalo 3 huonetta - Helsinki Ruoholahti Selkamerenkatu 12' -> 'Selkamerenkatu 12'
+    'Kiillekuja 3' -> 'Kiillekuja 3'
+    """
+    cleaned = (title or "").strip()
+    
+    # 1. Match after hyphen: "... - Helsinki [Area] [Street + Number]"
+    dash_match = re.search(r"-\s*(?:Helsinki\s+)?(?:[\w\-]+\s+)?([\w\s\-]+?\d+\s*[A-Za-z]?)", cleaned)
+    if dash_match:
+        street = dash_match.group(1).strip()
+        if any(c.isdigit() for c in street):
+            return street
+
+    # 2. Match standard street suffix + number: e.g. "Kiillekuja 3", "Mannerheimintie 12 B"
+    street_match = re.search(r"\b([\w\-]+(?:katu|tie|kuja|polku|kaari|raitti|v\w*yl\w*|ranta|rinne|puisto|kallio|m\w*ki|tori|aukio)\s+\d+\s*[A-Za-z]?)\b", cleaned, re.IGNORECASE)
+    if street_match:
+        return street_match.group(1).strip()
+
+    # 3. Match generic street name + number
+    generic_match = re.search(r"\b([\w\-]{3,}\s+\d+\s*[A-Za-z]?)\b", cleaned)
+    if generic_match:
+        cand = generic_match.group(1).strip()
+        if not re.search(r"\b(huonetta|kerros|krs|m2|kk)\b", cand, re.IGNORECASE):
+            return cand
+
+    # Fallback to district
+    return asuinalue or "Helsinki"
+
 def geocode_address_hsl(title: str, asuinalue: str) -> tuple[float, float]:
     """
-    Geocodes an address or district using the free HSL Digitransit Pelias API:
-    https://api.digitransit.fi/geocoding/v1/search
-    Falls back to OpenStreetMap Nominatim and a static Helsinki district centroid index.
+    Multi-layer geocoder:
+    1. HSL Digitransit Pelias API (with digitransit-subscription-key if configured)
+    2. Photon OpenStreetMap API (free, fast, no API key required)
+    3. OpenStreetMap Nominatim
+    4. Helsinki district centroid lookup with small jitter
     """
-    clean_title = re.sub(r"\b(kaksio|yksiö|kolmio|\d+h\+k|krs|kerros)\b.*", "", title, flags=re.I).strip()
-    query_text = f"{clean_title}, {asuinalue}, Helsinki".strip(" ,")
+    street = clean_street_address(title, asuinalue)
+    query_text = f"{street}, {asuinalue}, Helsinki".strip(" ,")
 
-    # 1. Primary: HSL Digitransit Pelias API
-    pelias_url = f"https://api.digitransit.fi/geocoding/v1/search?text={quote(query_text)}&size=1&boundary.rect.min_lat=60.0&boundary.rect.max_lat=60.4&boundary.rect.min_lon=24.6&boundary.rect.max_lon=25.3"
-    headers = {
-        "User-Agent": "HelsinkiApartmentTracker/2.0 (leo-ella-koti)",
-    }
+    # 1. Primary: HSL Digitransit Pelias API (if subscription key is configured)
     if DIGITRANSIT_API_KEY:
-        headers["digitransit-subscription-key"] = DIGITRANSIT_API_KEY
+        pelias_url = f"https://api.digitransit.fi/geocoding/v1/search?text={quote(query_text)}&size=1&boundary.rect.min_lat=60.0&boundary.rect.max_lat=60.4&boundary.rect.min_lon=24.6&boundary.rect.max_lon=25.3"
+        headers = {
+            "User-Agent": "HelsinkiApartmentTracker/2.0 (leo-ella-koti)",
+            "digitransit-subscription-key": DIGITRANSIT_API_KEY
+        }
+        try:
+            with httpx.Client(timeout=4.0) as client:
+                resp = client.get(pelias_url, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    features = data.get("features", [])
+                    if features:
+                        coords = features[0]["geometry"]["coordinates"]
+                        lon = float(coords[0])
+                        lat = float(coords[1])
+                        if 60.1 <= lat <= 60.35 and 24.7 <= lon <= 25.3:
+                            return round(lat, 6), round(lon, 6)
+        except Exception:
+            pass
 
+    # 2. Secondary: Photon OpenStreetMap geocoder (free, no API key required)
     try:
+        photon_url = f"https://photon.komoot.io/api/?q={quote(query_text)}&limit=1"
         with httpx.Client(timeout=4.0) as client:
-            resp = client.get(pelias_url, headers=headers)
-            if resp.status_code == 200:
-                data = resp.json()
-                features = data.get("features", [])
-                if features:
-                    coords = features[0]["geometry"]["coordinates"]
-                    # GeoJSON is [lon, lat]
-                    lon = float(coords[0])
-                    lat = float(coords[1])
-                    return round(lat, 6), round(lon, 6)
-    except Exception:
-        pass
-
-    # 2. Secondary: Fallback to district query on Pelias
-    try:
-        dist_url = f"https://api.digitransit.fi/geocoding/v1/search?text={quote(asuinalue + ', Helsinki')}&size=1"
-        with httpx.Client(timeout=3.0) as client:
-            resp = client.get(dist_url, headers=headers)
+            resp = client.get(photon_url, headers={"User-Agent": "HelsinkiApartmentTracker/2.0"})
             if resp.status_code == 200:
                 features = resp.json().get("features", [])
                 if features:
                     coords = features[0]["geometry"]["coordinates"]
-                    return round(float(coords[1]), 6), round(float(coords[0]), 6)
+                    lon = float(coords[0])
+                    lat = float(coords[1])
+                    if 60.1 <= lat <= 60.35 and 24.7 <= lon <= 25.3:
+                        return round(lat, 6), round(lon, 6)
     except Exception:
         pass
 
-    # 3. Tertiary: Local high-precision Helsinki District centroid lookup
-    norm_area = (asuinalue or "").strip()
+    # 3. Tertiary: OpenStreetMap Nominatim
+    try:
+        nom_url = f"https://nominatim.openstreetmap.org/search?q={quote(query_text)}&format=json&limit=1&countrycodes=fi"
+        with httpx.Client(timeout=4.0) as client:
+            resp = client.get(nom_url, headers={"User-Agent": "HelsinkiApartmentTracker/2.0 (leo-ella-koti)"})
+            if resp.status_code == 200:
+                data = resp.json()
+                if data:
+                    lat = float(data[0]["lat"])
+                    lon = float(data[0]["lon"])
+                    if 60.1 <= lat <= 60.35 and 24.7 <= lon <= 25.3:
+                        return round(lat, 6), round(lon, 6)
+    except Exception:
+        pass
+
+    # 4. Quaternary: Local high-precision Helsinki District centroid lookup
+    norm_area = (asuinalue or "").strip().lower()
     for d_name, (base_lat, base_lon) in HELSINKI_DISTRICT_COORDINATES.items():
-        if d_name.lower() in norm_area.lower() or norm_area.lower() in d_name.lower():
-            # Add small pseudo-jitter so multiple listings in same district don't overlap completely
+        if d_name.lower() in norm_area or norm_area in d_name.lower():
             jitter_lat = (random.random() - 0.5) * 0.003
             jitter_lon = (random.random() - 0.5) * 0.003
             return round(base_lat + jitter_lat, 6), round(base_lon + jitter_lon, 6)
 
-    # Default to Helsinki center
-    return 60.1699, 24.9384
-
-# =====================================================================
+    # Default to Helsinki center with jitter
+    return round(60.1699 + (random.random() - 0.5) * 0.005, 6), round(24.9384 + (random.random() - 0.5) * 0.005, 6)
 # PHASE 3: HELSINKI DISTRICT PROFILES & HEURISTIC EVALUATION ENGINE
 # =====================================================================
 
@@ -549,6 +620,8 @@ class VuokraoviScraper:
             "status": "Interested",
             "lat": lat,
             "lon": lon,
+            "latitude": lat,
+            "longitude": lon,
             "specs": dossier
         }
 
@@ -602,19 +675,36 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
         item["votes"] = apt_votes
         item["is_mutual_match"] = (apt_votes.get("Leo") == "love" and apt_votes.get("Ella") == "love")
 
-        # Phase 4: Ensure lat & lon coordinates exist
-        lat = item.get("lat")
-        lon = item.get("lon")
-        if lat is None or lon is None:
-            # Check inside specs first
-            specs_obj = item.get("specs") or {}
-            if specs_obj.get("lat") and specs_obj.get("lon"):
-                lat = specs_obj["lat"]
-                lon = specs_obj["lon"]
-            else:
-                lat, lon = geocode_address_hsl(item.get("title", ""), area)
-            item["lat"] = lat
-            item["lon"] = lon
+        # Phase 4: Ensure lat & lon coordinates exist (reading latitude/longitude or lat/lon)
+        apt_id = item.get("id")
+        lat = item.get("latitude") if item.get("latitude") is not None else item.get("lat")
+        lon = item.get("longitude") if item.get("longitude") is not None else item.get("lon")
+
+        # Detect missing or corrupted old Kaarela default coordinates (lat ~ 60.245, lon ~ 24.862)
+        needs_regeocode = (lat is None or lon is None)
+        if not needs_regeocode and (60.24 <= lat <= 60.25 and 24.85 <= lon <= 24.88 and area.lower() not in ("kaarela", "malminkartano", "kannelmäki")):
+            needs_regeocode = True
+
+        if needs_regeocode:
+            lat, lon = geocode_address_hsl(item.get("title", ""), area)
+            try:
+                sb.table("apartments").update({
+                    "latitude": lat,
+                    "longitude": lon
+                }).eq("id", apt_id).execute()
+            except Exception:
+                try:
+                    sb.table("apartments").update({
+                        "lat": lat,
+                        "lon": lon
+                    }).eq("id", apt_id).execute()
+                except Exception:
+                    pass
+
+        item["latitude"] = lat
+        item["longitude"] = lon
+        item["lat"] = lat
+        item["lon"] = lon
 
         # Phase 3: Ensure structured dossier is present even on older records
         if not item.get("specs"):
@@ -672,6 +762,8 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         "added_by": user["display_name"],
         "lat": lat,
         "lon": lon,
+        "latitude": lat,
+        "longitude": lon,
         "specs": dossier
     }
 
@@ -679,10 +771,10 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         res = sb.table("apartments").upsert(data, on_conflict="url").execute()
     except Exception as exc:
         err_msg = str(exc).lower()
-        # Fallback if lat/lon or specs columns are not yet provisioned in Supabase table schema
         fallback_data = dict(data)
-        if "lat" in err_msg or "lon" in err_msg:
+        if "lat" in err_msg and "latitude" not in err_msg:
             fallback_data.pop("lat", None)
+        if "lon" in err_msg and "longitude" not in err_msg:
             fallback_data.pop("lon", None)
         if "specs" in err_msg:
             fallback_data.pop("specs", None)
@@ -700,13 +792,16 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
         extracted["added_by"] = user["display_name"]
         sb = get_supabase()
         
+        extracted["latitude"] = extracted.get("lat")
+        extracted["longitude"] = extracted.get("lon")
         try:
             res = sb.table("apartments").upsert(extracted, on_conflict="url").execute()
         except Exception as exc:
             err_msg = str(exc).lower()
             fallback_data = dict(extracted)
-            if "lat" in err_msg or "lon" in err_msg:
+            if "lat" in err_msg and "latitude" not in err_msg:
                 fallback_data.pop("lat", None)
+            if "lon" in err_msg and "longitude" not in err_msg:
                 fallback_data.pop("lon", None)
             if "specs" in err_msg:
                 fallback_data.pop("specs", None)
