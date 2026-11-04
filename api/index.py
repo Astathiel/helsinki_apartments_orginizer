@@ -8,11 +8,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import jwt
 from pydantic import BaseModel, Field, field_validator
 from supabase import create_client, Client
+from functools import lru_cache
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
 
+@lru_cache(maxsize=1)
 def get_supabase() -> Client:
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         raise RuntimeError("Missing Supabase credentials in environment variables.")
