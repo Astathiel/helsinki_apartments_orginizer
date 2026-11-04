@@ -867,7 +867,18 @@
 
     <div id="district-jump-bar" class="district-jump-bar"></div>
 
-    <div class="grid">
+    <!-- Visitor Banner (visible only in Visitor mode) -->
+    <div id="visitor-banner" class="card" style="display: none; background: var(--notes-bg); border-left: 5px solid #3b82f6; margin-bottom: 24px; padding: 16px 20px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <span style="font-size: 1.8rem;">👁️</span>
+            <div>
+                <h3 style="margin: 0 0 4px 0; font-size: 1.05rem; color: var(--text-color);">Visitor Mode (Read-Only)</h3>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--msg-color); line-height: 1.4;">You are logged in with guest view access. You can browse all listings, view interactive maps, inspect dossiers & specs, and run side-by-side comparisons. Adding, editing, deleting, and voting are reserved for Leo and Ella.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="entry-forms-grid" class="grid">
         <div class="card">
             <h3 id="form-title">Manual Entry / Edit</h3>
             <input id="m-url" placeholder="Apartment Link (https://...)">
@@ -963,6 +974,7 @@ const SUPABASE_ANON_PUBLIC_KEY = "sb_publishable_EyvpHQRMoLrGmstxquNbfw_txuKKrex
 const sb = supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_PUBLIC_KEY);
 let currentSession = null;
 let currentDisplayName = "Leo";
+let isVisitor = false;
 
 let apartmentsCache = {};
 let selectedForComparison = new Set();
@@ -1036,7 +1048,21 @@ function updateUserDisplay(user) {
     if (!user) return;
     const name = user.user_metadata?.display_name || user.email.split("@")[0].toUpperCase();
     currentDisplayName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-    document.getElementById("current-user-display").textContent = currentDisplayName;
+    isVisitor = (currentDisplayName.toLowerCase() === "visitor" || (user.email && user.email.toLowerCase().startsWith("visitor")));
+    
+    const displayEl = document.getElementById("current-user-display");
+    const formsGrid = document.getElementById("entry-forms-grid");
+    const visitorBanner = document.getElementById("visitor-banner");
+
+    if (isVisitor) {
+        displayEl.innerHTML = `<span style="color: #64748b; font-weight: 700;">👁️ Visitor (Read-Only)</span>`;
+        if (formsGrid) formsGrid.style.display = "none";
+        if (visitorBanner) visitorBanner.style.display = "block";
+    } else {
+        displayEl.textContent = currentDisplayName;
+        if (formsGrid) formsGrid.style.display = "grid";
+        if (visitorBanner) visitorBanner.style.display = "none";
+    }
 }
 
 // Realtime subscriptions for both apartments and apartment_votes
@@ -1082,6 +1108,10 @@ function handleIncomingVote(apartmentId, userName, voteTier) {
 }
 
 async function castVote(apartmentId, voteTier) {
+    if (isVisitor) {
+        alert("Visitor account has read-only access. Only Leo and Ella can cast votes.");
+        return;
+    }
     const apt = apartmentsCache[apartmentId];
     if (!apt) return;
 
@@ -1502,6 +1532,51 @@ async function loadApartments() {
             const ellaVoteText = formatVoteEmoji(apt.votes?.["Ella"]);
             const isCompared = selectedForComparison.has(apt.id);
 
+            const votingSectionHtml = isVisitor ? `
+                <div class="vote-section">
+                    <div class="vote-header">
+                        <span>Partner Votes:</span>
+                        <div class="vote-status-summary">
+                            <span>Leo: ${leoVoteText}</span>
+                            <span>•</span>
+                            <span>Ella: ${ellaVoteText}</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--msg-color); text-align: center; font-style: italic; padding: 2px 0;">
+                        Voting reserved for Leo & Ella
+                    </div>
+                </div>
+            ` : `
+                <div class="vote-section">
+                    <div class="vote-header">
+                        <span>Your Vote:</span>
+                        <div class="vote-status-summary">
+                            <span>Leo: ${leoVoteText}</span>
+                            <span>•</span>
+                            <span>Ella: ${ellaVoteText}</span>
+                        </div>
+                    </div>
+                    <div class="vote-btn-row">
+                        <button class="vote-btn btn-vote-love ${userVote === 'love' ? 'active-love' : ''}" onclick="castVote(${apt.id}, 'love')">
+                            💚 Love
+                        </button>
+                        <button class="vote-btn btn-vote-neutral ${userVote === 'neutral' ? 'active-neutral' : ''}" onclick="castVote(${apt.id}, 'neutral')">
+                            🟡 Neutral
+                        </button>
+                        <button class="vote-btn btn-vote-pass ${userVote === 'pass' ? 'active-pass' : ''}" onclick="castVote(${apt.id}, 'pass')">
+                            🔴 Pass
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            const actionsHtml = isVisitor ? '' : `
+                <div class="apt-actions">
+                    <button class="btn-edit" onclick="editApt('${safeAptJson}')">Edit</button>
+                    <button class="btn-del" onclick="deleteApt(${apt.id})">Delete</button>
+                </div>
+            `;
+
             const card = document.createElement("div");
             card.className = `snap-card ${isMatch ? 'mutual-match' : ''}`;
             card.id = `apt-card-${apt.id}`;
@@ -1526,38 +1601,15 @@ async function loadApartments() {
                         <span class="badge bg-spec">${apt.eur_per_m2} €/m²</span>
                     </div>
 
-                    <!-- 3-Tier Partner Voting (Phase 2) -->
-                    <div class="vote-section">
-                        <div class="vote-header">
-                            <span>Your Vote:</span>
-                            <div class="vote-status-summary">
-                                <span>Leo: ${leoVoteText}</span>
-                                <span>•</span>
-                                <span>Ella: ${ellaVoteText}</span>
-                            </div>
-                        </div>
-                        <div class="vote-btn-row">
-                            <button class="vote-btn btn-vote-love ${userVote === 'love' ? 'active-love' : ''}" onclick="castVote(${apt.id}, 'love')">
-                                💚 Love
-                            </button>
-                            <button class="vote-btn btn-vote-neutral ${userVote === 'neutral' ? 'active-neutral' : ''}" onclick="castVote(${apt.id}, 'neutral')">
-                                🟡 Neutral
-                            </button>
-                            <button class="vote-btn btn-vote-pass ${userVote === 'pass' ? 'active-pass' : ''}" onclick="castVote(${apt.id}, 'pass')">
-                                🔴 Pass
-                            </button>
-                        </div>
-                    </div>
+                    <!-- Partner Voting / Visitor Indicator -->
+                    ${votingSectionHtml}
 
                     <!-- Phase 3: Rules-Based Apartment Dossier / Brain Accordion -->
                     ${buildDossierHtml(apt)}
 
                     ${notesHtml}
                 </div>
-                <div class="apt-actions">
-                    <button class="btn-edit" onclick="editApt('${safeAptJson}')">Edit</button>
-                    <button class="btn-del" onclick="deleteApt(${apt.id})">Delete</button>
-                </div>
+                ${actionsHtml}
             `;
             track.appendChild(card);
         });
@@ -1579,6 +1631,10 @@ function escapeHtml(str) {
 }
 
 function editApt(encodedJson) {
+    if (isVisitor) {
+        alert("Visitor account is read-only. Editing listings is disabled.");
+        return;
+    }
     const apt = JSON.parse(decodeURIComponent(encodedJson));
     document.getElementById("m-url").value = apt.url;
     document.getElementById("m-title").value = apt.title;
@@ -1592,6 +1648,10 @@ function editApt(encodedJson) {
 }
 
 async function submitManual() {
+    if (isVisitor) {
+        alert("Visitor account is read-only. Adding listings is disabled.");
+        return;
+    }
     const status = document.getElementById("m-status-msg");
     const url = document.getElementById("m-url").value.trim();
     const title = document.getElementById("m-title").value.trim();
@@ -1626,6 +1686,10 @@ async function submitManual() {
 }
 
 async function submitScrape() {
+    if (isVisitor) {
+        alert("Visitor account is read-only. Auto-fetching listings is disabled.");
+        return;
+    }
     const status = document.getElementById("s-status");
     const url = document.getElementById("s-url").value.trim();
     const fallback_asuinalue = document.getElementById("s-area").value.trim();
@@ -1656,6 +1720,10 @@ async function submitScrape() {
 }
 
 async function deleteApt(id) {
+    if (isVisitor) {
+        alert("Visitor account is read-only. Deleting listings is disabled.");
+        return;
+    }
     if (!confirm("Are you sure you want to delete this apartment?")) return;
     const headers = await apiHeaders();
     await fetch(`/api/apartments/${id}`, { method: "DELETE", headers });
@@ -1904,3 +1972,4 @@ sb.auth.getSession().then(({ data: { session } }) => {
 </script>
 </body>
 </html>
+

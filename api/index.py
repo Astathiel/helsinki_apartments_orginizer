@@ -34,16 +34,22 @@ def get_current_user(authorization: str = Header(None)) -> dict:
         user = user_response.user
         meta = user.user_metadata or {}
         display_name = meta.get("display_name") or (user.email.split("@")[0].capitalize() if user.email else "User")
+        is_visitor = (display_name.lower() == "visitor" or (user.email and user.email.lower().startswith("visitor")))
         
         return {
             "id": user.id,
             "email": user.email,
-            "display_name": display_name
+            "display_name": display_name,
+            "is_visitor": is_visitor
         }
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(status_code=401, detail=f"Authentication error: {str(exc)}")
+
+def require_editor(user: dict):
+    if user.get("is_visitor"):
+        raise HTTPException(status_code=403, detail="Visitor account has read-only access.")
     
 def normalize_url(raw_url: str) -> str:
     cleaned = raw_url.strip()
@@ -636,6 +642,7 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
 @app.post("/api/apartments/manual")
 def add_manual(payload: ManualApartmentInput, authorization: str = Header(None)):
     user = get_current_user(authorization)
+    require_editor(user)
     sb = get_supabase()
 
     # Phase 4: Geocode via HSL Digitransit Pelias
@@ -687,6 +694,7 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
 @app.post("/api/apartments/scrape")
 def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)):
     user = get_current_user(authorization)
+    require_editor(user)
     try:
         extracted = scraper.extract(payload.url, payload.fallback_asuinalue)
         extracted["added_by"] = user["display_name"]
@@ -712,6 +720,7 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
 @app.post("/api/apartments/vote")
 def cast_vote(payload: ApartmentVoteInput, authorization: str = Header(None)):
     user = get_current_user(authorization)
+    require_editor(user)
     user_name = user["display_name"]
     sb = get_supabase()
     vote_data = {
@@ -744,7 +753,8 @@ def cast_vote(payload: ApartmentVoteInput, authorization: str = Header(None)):
 @app.delete("/apartments/{apt_id}")
 @app.delete("/api/apartments/{apt_id}")
 def remove_apartment(apt_id: int, authorization: str = Header(None)):
-    get_current_user(authorization)
+    user = get_current_user(authorization)
+    require_editor(user)
     sb = get_supabase()
     sb.table("apartments").delete().eq("id", apt_id).execute()
     try:
