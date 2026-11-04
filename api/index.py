@@ -154,25 +154,8 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
     sb = get_supabase()
     res = sb.table("apartments").select("*").order("asuinalue", desc=False).execute()
     rows = res.data or []
-
-    # Fetch votes
-    try:
-        votes_res = sb.table("apartment_votes").select("*").execute()
-        votes_data = votes_res.data or []
-    except Exception:
-        votes_data = []
-
-    votes_by_apt = {}
-    for v in votes_data:
-        apt_id = v.get("apartment_id")
-        if apt_id not in votes_by_apt:
-            votes_by_apt[apt_id] = []
-        votes_by_apt[apt_id].append(v)
-
     grouped = {}
     for item in rows:
-        item_id = item.get("id")
-        item["votes"] = votes_by_apt.get(item_id, [])
         price = float(item.get("price", 0))
         size = float(item.get("size_m2", 0))
         item["eur_per_m2"] = round(price / size, 2) if size > 0 else 0.0
