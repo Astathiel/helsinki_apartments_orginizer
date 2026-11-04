@@ -93,6 +93,10 @@ class VuokraoviScraper:
         }
 
     def extract(self, url: str, fallback_area: str = "") -> dict:
+        parsed_url = urlsplit(url)
+        if parsed_url.netloc not in ("www.vuokraovi.com", "vuokraovi.com"):
+            raise ValueError("Only vuokraovi.com URLs are allowed for security reasons.")
+
         try:
             response = httpx.get(url, headers=self.headers, follow_redirects=True, timeout=15.0)
             response.raise_for_status()
