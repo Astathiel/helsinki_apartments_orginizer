@@ -483,7 +483,7 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
     res = sb.table("apartments").select("*").order("asuinalue", desc=False).execute()
     rows = res.data or []
 
-    # Retrieve votes from apartment_votes table if available (Phase 2)
+    # Retrieve votes from apartment_votes table if available
     votes_by_apt = {}
     try:
         votes_res = sb.table("apartment_votes").select("*").execute()
@@ -494,6 +494,7 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
             if apt_id and user_name:
                 votes_by_apt.setdefault(apt_id, {})[user_name] = vote_val
     except Exception:
+        # If apartment_votes table is not yet created or queries fail, gracefully continue
         pass
 
     grouped = {}
@@ -505,20 +506,11 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
         if not item.get("added_by"):
             item["added_by"] = "Leo"
 
-        # Partner voting and mutual match status (Phase 2)
+        # Populate votes and mutual match flag
         apt_id = item.get("id")
         apt_votes = votes_by_apt.get(apt_id, {})
         item["votes"] = apt_votes
         item["is_mutual_match"] = (apt_votes.get("Leo") == "love" and apt_votes.get("Ella") == "love")
-
-        # Phase 3: Ensure structured dossier is present even on older records
-        if not item.get("specs"):
-            item["specs"] = generate_dossier(
-                price=price,
-                size_m2=size,
-                asuinalue=area,
-                raw_text=f"{item.get('title', '')} {item.get('notes', '')}"
-            )
 
         grouped.setdefault(area, []).append(item)
 
@@ -605,6 +597,7 @@ def cast_vote(payload: ApartmentVoteInput, authorization: str = Header(None)):
     except Exception:
         sb.table("apartment_votes").upsert(vote_data).execute()
 
+    # Calculate mutual match
     is_match = False
     try:
         votes_res = sb.table("apartment_votes").select("*").eq("apartment_id", payload.apartment_id).execute()
