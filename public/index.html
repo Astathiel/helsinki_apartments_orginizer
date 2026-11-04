@@ -410,6 +410,7 @@ async function submitScrape() {
 }
 
 async function deleteApt(id) {
+    if (!confirm("Are you sure you want to delete this apartment?")) return;
     const headers = await apiHeaders();
     await fetch(`/api/apartments/${id}`, { method: "DELETE", headers });
     loadApartments();
