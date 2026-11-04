@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Helsinki Apartment Tracker</title>
+    <title>Helsinki Apartment Tracker — Leo & Ella</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,7 +28,7 @@
             --btn-del: #fca5a5;
             --btn-del-hover: #f87171;
             --btn-del-text: #7f1d1d;
-            --status-interested: #3b82f6; /* Keep some distinction, maybe forest blue/green */
+            --status-interested: #3b82f6;
             --status-applied: #10b981;
             --status-viewing: #fbbf24;
             --status-not: #94a3b8;
@@ -41,6 +41,20 @@
             --link-hover: #047857;
             --border-color: #d1d5db;
             --msg-color: #64748b;
+            --match-border: #10b981;
+            --match-glow: rgba(16, 185, 129, 0.35);
+            --modal-bg: #ffffff;
+            --modal-header-bg: #f8fafc;
+
+            /* Phase 3 Dossier Colors */
+            --dossier-bg: #f8fafc;
+            --dossier-border: #e2e8f0;
+            --pro-bg: #ecfdf5;
+            --pro-border: #a7f3d0;
+            --pro-text: #065f46;
+            --con-bg: #fff1f2;
+            --con-border: #fecdd3;
+            --con-text: #9f1239;
         }
 
         [data-theme="dark"] {
@@ -75,9 +89,23 @@
             --link-hover: #6ee7b7;
             --border-color: #065f46;
             --msg-color: #94a3b8;
+            --match-border: #34d399;
+            --match-glow: rgba(52, 211, 153, 0.45);
+            --modal-bg: #064e3b;
+            --modal-header-bg: #022c22;
+
+            /* Phase 3 Dossier Colors (Dark) */
+            --dossier-bg: #022c22;
+            --dossier-border: #065f46;
+            --pro-bg: #064e3b;
+            --pro-border: #059669;
+            --pro-text: #a7f3d0;
+            --con-bg: #4c0519;
+            --con-border: #881337;
+            --con-text: #fecdd3;
         }
 
-        body { font-family: 'Quicksand', system-ui, sans-serif; background: var(--bg-gradient); color: var(--text-color); margin: 0; padding: 20px; min-height: 100vh; }
+        body { font-family: 'Quicksand', system-ui, sans-serif; background: var(--bg-gradient); color: var(--text-color); margin: 0; padding: 20px; min-height: 100vh; padding-bottom: 120px; }
         .container { max-width: 1100px; margin: 0 auto; }
         .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
         .user-pill { display: flex; align-items: center; gap: 8px; background: var(--pill-bg); padding: 6px 14px; border-radius: 20px; border: 1px solid var(--pill-border); color: var(--text-color); }
@@ -98,8 +126,8 @@
         .btn-del:hover { background: var(--btn-del-hover); }
         .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--card-bg); padding: 16px; border-radius: 16px; flex-wrap: wrap; gap: 10px; border: 1px solid var(--card-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .toolbar select { width: auto; margin: 0; padding: 8px 12px; }
-        .apt-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px; border-bottom: 1px solid var(--border-color); gap: 16px; }
-        .apt-row:last-child { border-bottom: none; }
+        
+        /* Badges */
         .badge { display: inline-block; padding: 6px 12px; border-radius: 8px; font-size: 0.9rem; margin-right: 8px; font-weight: 600; }
         .bg-spec { background: var(--badge-spec-bg); color: var(--badge-spec-text); }
         .status-badge { display: inline-block; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; margin-right: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -116,9 +144,11 @@
         .msg { font-size: 0.9rem; margin: 8px 0 0 0; min-height: 1.2em; color: var(--msg-color); font-weight: 500; }
         a { color: var(--link-color); text-decoration: none; font-weight: 700; transition: color 0.2s; }
         a:hover { color: var(--link-hover); text-decoration: underline; }
+        
         #auth-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; }
         .auth-box { max-width: 400px; width: 100%; padding: 32px; text-align: center; }
         .auth-box h2 { color: var(--text-color); margin-bottom: 8px; }
+        
         .district-jump-bar { position: sticky; top: 0; z-index: 40; background: var(--bg-color); display: flex; gap: 10px; padding: 10px 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); }
         .district-jump-bar::-webkit-scrollbar { display: none; }
         .district-pill { white-space: nowrap; padding: 8px 16px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; color: var(--text-color); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -129,17 +159,500 @@
         .slide-counter { font-size: 0.9rem; font-weight: 700; color: var(--msg-color); background: var(--card-bg); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-color); }
         .snap-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 16px; padding-bottom: 12px; scrollbar-width: none; -ms-overflow-style: none; }
         .snap-track::-webkit-scrollbar { display: none; }
-        .snap-card { flex: 0 0 92%; max-width: 400px; scroll-snap-align: center; background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--card-border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: space-between; gap: 12px; box-sizing: border-box; }
-        @media (min-width: 768px) { .snap-card { flex: 0 0 350px; scroll-snap-align: start; } }
-        .apt-info { display: flex; flex-direction: column; gap: 12px; }
-        .apt-header-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
-        .apt-title-link { font-size: 1.1rem; line-height: 1.3; margin: 4px 0; }
-        .apt-stats { display: flex; flex-wrap: wrap; gap: 8px; }
-        .apt-actions { display: flex; gap: 12px; margin-top: auto; }
+        
+        /* Snap Card & Mutual Match Styling */
+        .snap-card {
+            flex: 0 0 92%;
+            max-width: 440px;
+            scroll-snap-align: center;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 18px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 14px;
+            box-sizing: border-box;
+            position: relative;
+            transition: all 0.25s ease-in-out;
+        }
+        @media (min-width: 768px) { .snap-card { flex: 0 0 400px; scroll-snap-align: start; } }
+
+        .snap-card.mutual-match {
+            border: 2.5px solid var(--match-border) !important;
+            box-shadow: 0 0 24px var(--match-glow), 0 8px 16px -2px rgba(16, 185, 129, 0.25) !important;
+        }
+
+        .mutual-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 800;
+            padding: 7px 14px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+            margin-bottom: 8px;
+            animation: pulse-glow 2.5s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.95; }
+        }
+
+        .card-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compare-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: var(--pill-bg);
+            border: 1px solid var(--pill-border);
+            user-select: none;
+            transition: all 0.2s;
+        }
+        .compare-label input {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+        .compare-label:hover {
+            opacity: 0.9;
+        }
+
+        /* Voting Section */
+        .vote-section {
+            background: var(--pill-bg);
+            border: 1px solid var(--pill-border);
+            border-radius: 12px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .vote-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+        .vote-status-summary {
+            display: flex;
+            gap: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--msg-color);
+        }
+        .vote-btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+        }
+        .vote-btn {
+            padding: 7px 4px;
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        .vote-btn:hover {
+            transform: translateY(-1px);
+        }
+        .vote-btn.active-love {
+            background: #10b981;
+            color: white;
+            border-color: #059669;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+        }
+        .vote-btn.active-neutral {
+            background: #fbbf24;
+            color: #78350f;
+            border-color: #f59e0b;
+            box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
+        }
+        .vote-btn.active-pass {
+            background: #f87171;
+            color: white;
+            border-color: #ef4444;
+            box-shadow: 0 2px 6px rgba(248, 113, 113, 0.4);
+        }
+
+        /* Phase 3: Dossier / Brain Accordion Styling */
+        .dossier-box {
+            margin-top: 6px;
+            border: 1px solid var(--dossier-border);
+            background: var(--dossier-bg);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all 0.25s ease-in-out;
+        }
+        .dossier-header-btn {
+            width: 100%;
+            background: transparent;
+            color: var(--text-color);
+            border: none;
+            padding: 10px 14px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .dossier-header-btn:hover {
+            background: rgba(0,0,0,0.03);
+            transform: none;
+        }
+        .dossier-counts {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .dossier-badge-pro {
+            background: var(--pro-bg);
+            color: var(--pro-text);
+            border: 1px solid var(--pro-border);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        .dossier-badge-con {
+            background: var(--con-bg);
+            color: var(--con-text);
+            border: 1px solid var(--con-border);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        .dossier-arrow {
+            transition: transform 0.25s ease;
+            font-size: 0.8rem;
+            color: var(--msg-color);
+        }
+        .dossier-arrow.open {
+            transform: rotate(180deg);
+        }
+        .dossier-body {
+            display: none;
+            padding: 12px 14px;
+            border-top: 1px solid var(--dossier-border);
+            font-size: 0.85rem;
+            line-height: 1.45;
+        }
+        .dossier-body.open {
+            display: block;
+        }
+        .spec-pills-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .spec-pill {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .dossier-vibe {
+            font-size: 0.8rem;
+            font-style: italic;
+            color: var(--msg-color);
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed var(--dossier-border);
+        }
+        .eval-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .eval-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            font-size: 0.8rem;
+            line-height: 1.35;
+            padding: 6px 8px;
+            border-radius: 8px;
+        }
+        .eval-item.pro {
+            background: var(--pro-bg);
+            border: 1px solid var(--pro-border);
+            color: var(--pro-text);
+        }
+        .eval-item.con {
+            background: var(--con-bg);
+            border: 1px solid var(--con-border);
+            color: var(--con-text);
+        }
+        .eval-icon {
+            font-weight: 800;
+            font-size: 0.9rem;
+            line-height: 1;
+        }
+
+        .apt-info { display: flex; flex-direction: column; gap: 8px; }
+        .apt-header-badges { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .apt-title-link { font-size: 1.15rem; line-height: 1.35; margin: 2px 0; }
+        .apt-stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0; }
+        .apt-actions { display: flex; gap: 10px; margin-top: auto; }
         .apt-actions button { flex: 1; padding: 10px; margin: 0; }
+
+        /* Floating Comparison Dock */
+        #compare-dock {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(150%);
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 12px 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+            opacity: 0;
+            max-width: 90vw;
+            border: 1px solid #334155;
+        }
+        #compare-dock.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .dock-badge {
+            background: #22c55e;
+            color: #022c22;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+        .dock-btn {
+            background: #22c55e;
+            color: #022c22;
+            font-weight: 700;
+            padding: 9px 18px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            margin: 0;
+            width: auto;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .dock-btn:hover {
+            background: #16a34a;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+        .dock-clear-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #475569;
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin: 0;
+            width: auto;
+            transition: all 0.2s;
+        }
+        .dock-clear-btn:hover {
+            color: #ffffff;
+            border-color: #cbd5e1;
+        }
+
+        /* Side-by-Side Comparison Modal */
+        #compare-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #compare-modal.open {
+            display: flex;
+        }
+        .modal-container {
+            background: var(--modal-bg);
+            color: var(--text-color);
+            width: 100%;
+            max-width: 1100px;
+            max-height: 90vh;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: modal-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modal-pop {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-header {
+            padding: 16px 24px;
+            background: var(--modal-header-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.35rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .toggle-diff-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+        }
+        .toggle-diff-label input {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+        .modal-close-btn {
+            background: transparent;
+            color: var(--text-color);
+            border: none;
+            font-size: 1.5rem;
+            width: auto;
+            padding: 4px 10px;
+            margin: 0;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .modal-close-btn:hover {
+            background: rgba(0,0,0,0.06);
+            transform: none;
+        }
+        .modal-body {
+            overflow: auto;
+            padding: 20px;
+            flex: 1;
+        }
+        
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            text-align: left;
+            vertical-align: top;
+        }
+        .comparison-table th {
+            background: var(--pill-bg);
+            font-weight: 700;
+        }
+        .comparison-table th.col-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--modal-header-bg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            min-width: 240px;
+        }
+        .comparison-table tr.hidden-row {
+            display: none;
+        }
+        .delta-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-top: 4px;
+        }
+        .delta-tag.lowest {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+        .delta-tag.higher {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+        [data-theme="dark"] .delta-tag.lowest {
+            background: #065f46;
+            color: #a7f3d0;
+            border-color: #10b981;
+        }
+        [data-theme="dark"] .delta-tag.higher {
+            background: #7f1d1d;
+            color: #fecaca;
+            border-color: #ef4444;
+        }
     </style>
 </head>
 <body>
+
 <div id="auth-overlay">
     <div class="card auth-box">
         <h2>Sign In</h2>
@@ -168,6 +681,7 @@
     </div>
 
     <div id="district-jump-bar" class="district-jump-bar"></div>
+
     <div class="grid">
         <div class="card">
             <h3 id="form-title">Manual Entry / Edit</h3>
@@ -182,7 +696,7 @@
                 <option value="Viewing Booked">Status: Viewing Booked</option>
                 <option value="Not Interested">Status: Not Interested</option>
             </select>
-            <textarea id="m-notes" placeholder="Notes (e.g. Sauna included, contact landlord)"></textarea>
+            <textarea id="m-notes" placeholder="Notes (e.g. 4/6 krs, oma sauna, lasitettu parveke, vesi sisältyy)"></textarea>
             <button onclick="submitManual()">Save Apartment</button>
             <p id="m-status-msg" class="msg" style="color: #94a3b8;"></p>
         </div>
@@ -190,7 +704,7 @@
             <h3>Vuokraovi Auto-Scraper</h3>
             <input id="s-url" placeholder="Paste Vuokraovi Link (https://www.vuokraovi.com/kohde/...)">
             <input id="s-area" placeholder="Optional: Fallback asuinalue (e.g. Kruunuvuori)">
-            <button onclick="submitScrape()">Auto-Fetch & Save</button>
+            <button onclick="submitScrape()">Auto-Fetch, Dossier & Save</button>
             <p id="s-status" class="msg" style="color: #94a3b8;"></p>
         </div>
     </div>
@@ -206,18 +720,48 @@
                 <option value="eur_per_m2-false">Best Value: Lowest €/m²</option>
             </select>
         </div>
+        <div id="mutual-count-badge" style="font-weight: 700; font-size: 0.9rem; color: #10b981;"></div>
     </div>
 
     <div id="groups"></div>
 </div>
 
+<!-- Floating Comparison Dock -->
+<div id="compare-dock">
+    <span class="dock-badge" id="dock-selected-count">0 / 3</span>
+    <span style="font-size: 0.9rem; font-weight: 600;">Selected for comparison</span>
+    <button class="dock-clear-btn" onclick="clearComparison()">Clear</button>
+    <button class="dock-btn" onclick="openComparisonModal()">⚖️ Open Comparison</button>
+</div>
+
+<!-- Side-by-Side Comparison Modal -->
+<div id="compare-modal" onclick="handleModalBackdropClick(event)">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2><span>⚖️</span> Apartment Side-by-Side Comparison</h2>
+            <div class="modal-controls">
+                <label class="toggle-diff-label">
+                    <input type="checkbox" id="diff-toggle" onchange="toggleDifferencesOnly(this.checked)">
+                    Show Differences Only
+                </label>
+                <button class="modal-close-btn" onclick="closeComparisonModal()" title="Close">&times;</button>
+            </div>
+        </div>
+        <div class="modal-body" id="modal-table-container"></div>
+    </div>
+</div>
+
 <script>
-// Replace these two strings with your actual Supabase credentials:
 const SUPABASE_PROJECT_URL = "https://fyrwiytzuxsebluygtjb.supabase.co";
 const SUPABASE_ANON_PUBLIC_KEY = "sb_publishable_EyvpHQRMoLrGmstxquNbfw_txuKKrex";
 
 const sb = supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_PUBLIC_KEY);
 let currentSession = null;
+let currentDisplayName = "Leo";
+
+let apartmentsCache = {};
+let selectedForComparison = new Set();
+let openedDossiers = new Set(); // tracks open accordion card IDs
 
 // Theme Toggle Logic
 function initTheme() {
@@ -258,7 +802,6 @@ async function handleLogin() {
         return;
     }
 
-    // Automatically append domain if you typed a plain username like "leo" or "ella"
     const email = rawInput.includes("@") ? rawInput : `${rawInput}@tracker.local`;
 
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
@@ -282,7 +825,8 @@ async function handleLogout() {
 function updateUserDisplay(user) {
     if (!user) return;
     const name = user.user_metadata?.display_name || user.email.split("@")[0].toUpperCase();
-    document.getElementById("current-user-display").textContent = name;
+    currentDisplayName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    document.getElementById("current-user-display").textContent = currentDisplayName;
 }
 
 function setupRealtime() {
@@ -293,11 +837,226 @@ function setupRealtime() {
       .subscribe((status) => {
           const el = document.getElementById("sync-status");
           if (status === "SUBSCRIBED") {
-              el.textContent = "Realtime Connected";
+              el.textContent = "⚡ Realtime Connected";
               el.style.color = "#10b981";
           }
       });
+
+    sb.channel("public:apartment_votes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "apartment_votes" }, (payload) => {
+          const voteRecord = payload.new;
+          if (voteRecord && voteRecord.apartment_id) {
+              handleIncomingVote(voteRecord.apartment_id, voteRecord.user_name, voteRecord.vote);
+          }
+      })
+      .subscribe();
 }
+
+function handleIncomingVote(apartmentId, userName, voteTier) {
+    const apt = apartmentsCache[apartmentId];
+    if (!apt) return;
+
+    if (!apt.votes) apt.votes = {};
+    apt.votes[userName] = voteTier;
+    apt.is_mutual_match = (apt.votes["Leo"] === "love" && apt.votes["Ella"] === "love");
+
+    updateCardUI(apt);
+    updateMutualMatchesCount();
+
+    if (document.getElementById("compare-modal").classList.contains("open")) {
+        renderComparisonModalContent();
+    }
+}
+
+async function castVote(apartmentId, voteTier) {
+    const apt = apartmentsCache[apartmentId];
+    if (!apt) return;
+
+    if (!apt.votes) apt.votes = {};
+    const currentVote = apt.votes[currentDisplayName];
+    const newVote = currentVote === voteTier ? "neutral" : voteTier;
+    apt.votes[currentDisplayName] = newVote;
+    apt.is_mutual_match = (apt.votes["Leo"] === "love" && apt.votes["Ella"] === "love");
+
+    updateCardUI(apt);
+    updateMutualMatchesCount();
+
+    try {
+        await sb.from("apartment_votes").upsert({
+            apartment_id: apartmentId,
+            user_name: currentDisplayName,
+            vote: newVote,
+            updated_at: new Date().toISOString()
+        }, { onConflict: "apartment_id,user_name" });
+    } catch (e) {
+        console.warn("Direct Supabase vote upsert notice:", e);
+    }
+
+    try {
+        const headers = await apiHeaders();
+        await fetch("/api/apartments/vote", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ apartment_id: apartmentId, vote: newVote })
+        });
+    } catch (e) {
+        console.warn("API vote endpoint notice:", e);
+    }
+}
+
+function updateCardUI(apt) {
+    const card = document.getElementById(`apt-card-${apt.id}`);
+    if (!card) return;
+
+    if (apt.is_mutual_match) {
+        card.classList.add("mutual-match");
+        if (!card.querySelector(".mutual-badge")) {
+            const badge = document.createElement("div");
+            badge.className = "mutual-badge";
+            badge.innerHTML = `<span>💚</span> Mutual Match! Book Viewing`;
+            const headerContainer = card.querySelector(".apt-header-badges");
+            if (headerContainer) headerContainer.prepend(badge);
+        }
+    } else {
+        card.classList.remove("mutual-match");
+        const existingBadge = card.querySelector(".mutual-badge");
+        if (existingBadge) existingBadge.remove();
+    }
+
+    const userVote = apt.votes?.[currentDisplayName];
+    const btnLove = card.querySelector(".btn-vote-love");
+    const btnNeutral = card.querySelector(".btn-vote-neutral");
+    const btnPass = card.querySelector(".btn-vote-pass");
+
+    if (btnLove) btnLove.className = `vote-btn btn-vote-love ${userVote === 'love' ? 'active-love' : ''}`;
+    if (btnNeutral) btnNeutral.className = `vote-btn btn-vote-neutral ${userVote === 'neutral' ? 'active-neutral' : ''}`;
+    if (btnPass) btnPass.className = `vote-btn btn-vote-pass ${userVote === 'pass' ? 'active-pass' : ''}`;
+
+    const summary = card.querySelector(".vote-status-summary");
+    if (summary) {
+        const leo = formatVoteEmoji(apt.votes?.["Leo"]);
+        const ella = formatVoteEmoji(apt.votes?.["Ella"]);
+        summary.innerHTML = `<span>Leo: ${leo}</span><span>•</span><span>Ella: ${ella}</span>`;
+    }
+}
+
+function formatVoteEmoji(vote) {
+    if (vote === "love") return "💚 Love";
+    if (vote === "neutral") return "🟡 Neutral";
+    if (vote === "pass") return "🔴 Pass";
+    return "⏳ None";
+}
+
+function updateMutualMatchesCount() {
+    const all = Object.values(apartmentsCache);
+    const mutualCount = all.filter(a => a.is_mutual_match).length;
+    const badge = document.getElementById("mutual-count-badge");
+    if (badge) {
+        badge.innerHTML = mutualCount > 0 ? `✨ <strong>${mutualCount}</strong> Mutual Matches found!` : "";
+    }
+}
+
+// -------------------------------------------------------------
+// Phase 3: Dossier Accordion Helpers
+// -------------------------------------------------------------
+
+function toggleDossier(aptId) {
+    const body = document.getElementById(`dossier-body-${aptId}`);
+    const arrow = document.getElementById(`dossier-arrow-${aptId}`);
+    if (!body || !arrow) return;
+
+    if (body.classList.contains("open")) {
+        body.classList.remove("open");
+        arrow.classList.remove("open");
+        openedDossiers.delete(aptId);
+    } else {
+        body.classList.add("open");
+        arrow.classList.add("open");
+        openedDossiers.add(aptId);
+    }
+}
+
+function buildDossierHtml(apt) {
+    const specs = apt.specs || {};
+    const pros = specs.pros || [];
+    const cons = specs.cons || [];
+    const isOpen = openedDossiers.has(apt.id);
+
+    // Spec Badges
+    const floorBadge = specs.floor_str ? `🏢 Kerros: ${escapeHtml(specs.floor_str)}` : '🏢 Kerrostieto -';
+    const elevatorBadge = specs.has_elevator === true ? '🛗 Hissi' : specs.has_elevator === false ? 'Ei hissiä' : '🛗 Hissi -';
+    const waterBadge = specs.water_included ? '💧 Vesi sisältyy' : (specs.water_fee ? `💧 ${escapeHtml(specs.water_fee)}` : '💧 Vesi -');
+    const petsBadge = specs.pets_allowed === true ? '🐾 Lemmikit OK' : specs.pets_allowed === false ? '🚫 Ei lemmikkejä' : (specs.pets_allowed ? `🐾 ${escapeHtml(specs.pets_allowed)}` : '🐾 Lemmikit -');
+    const balconyBadge = specs.balcony_type ? `🌅 ${escapeHtml(specs.balcony_type)}` : (specs.has_balcony ? '🌅 Parveke' : 'Ei parveketta');
+    const saunaBadge = specs.sauna_type ? `🧖 ${escapeHtml(specs.sauna_type)}` : (specs.has_sauna ? '🧖 Oma sauna' : 'Ei saunaa');
+
+    const vibeText = specs.district_vibe ? `📍 ${escapeHtml(specs.district_vibe)}` : '';
+
+    return `
+        <div class="dossier-box">
+            <button class="dossier-header-btn" onclick="toggleDossier(${apt.id})">
+                <span style="display: flex; align-items: center; gap: 8px;">
+                    <span>🧠</span> <strong>Dossier & Evaluation</strong>
+                </span>
+                <div class="dossier-counts">
+                    <span class="dossier-badge-pro">+${pros.length}</span>
+                    <span class="dossier-badge-con">-${cons.length}</span>
+                    <span class="dossier-arrow ${isOpen ? 'open' : ''}" id="dossier-arrow-${apt.id}">▼</span>
+                </div>
+            </button>
+            <div class="dossier-body ${isOpen ? 'open' : ''}" id="dossier-body-${apt.id}">
+                ${vibeText ? `<div class="dossier-vibe">${vibeText}</div>` : ''}
+                
+                <div class="spec-pills-grid">
+                    <span class="spec-pill">${floorBadge}</span>
+                    <span class="spec-pill">${elevatorBadge}</span>
+                    <span class="spec-pill">${waterBadge}</span>
+                    <span class="spec-pill">${petsBadge}</span>
+                    <span class="spec-pill">${balconyBadge}</span>
+                    <span class="spec-pill">${saunaBadge}</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${pros.length > 0 ? `
+                        <div>
+                            <div style="font-size: 0.75rem; font-weight: 700; color: var(--pro-text); margin-bottom: 4px; text-transform: uppercase;">
+                                Pros (${pros.length})
+                            </div>
+                            <ul class="eval-list">
+                                ${pros.map(p => `
+                                    <li class="eval-item pro">
+                                        <span class="eval-icon">+</span>
+                                        <span>${escapeHtml(p)}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+
+                    ${cons.length > 0 ? `
+                        <div>
+                            <div style="font-size: 0.75rem; font-weight: 700; color: var(--con-text); margin-bottom: 4px; text-transform: uppercase;">
+                                Cons & Considerations (${cons.length})
+                            </div>
+                            <ul class="eval-list">
+                                ${cons.map(c => `
+                                    <li class="eval-item con">
+                                        <span class="eval-icon">-</span>
+                                        <span>${escapeHtml(c)}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// -------------------------------------------------------------
+// Load Apartments & Main Grid Rendering
+// -------------------------------------------------------------
 
 async function loadApartments() {
     const headers = await apiHeaders();
@@ -312,6 +1071,7 @@ async function loadApartments() {
     const jumpBar = document.getElementById("district-jump-bar");
     container.innerHTML = "";
     jumpBar.innerHTML = "";
+    apartmentsCache = {};
 
     const observerOptions = { root: null, rootMargin: "-100px 0px -50% 0px", threshold: 0 };
     const observer = new IntersectionObserver((entries) => {
@@ -372,25 +1132,69 @@ async function loadApartments() {
         });
 
         items.forEach((apt) => {
+            apartmentsCache[apt.id] = apt;
             const statusClass = apt.status.startsWith("Applied") ? "status-Applied" : apt.status.startsWith("Viewing") ? "status-Viewing" : apt.status.startsWith("Not") ? "status-Not" : "status-Interested";
             const notesHtml = apt.notes ? `<div class="notes-box">📝 ${escapeHtml(apt.notes)}</div>` : "";
             const author = apt.added_by || "Leo";
             const authorClass = author.toLowerCase() === "ella" ? "author-badge-ella" : "author-badge-leo";
             const safeAptJson = encodeURIComponent(JSON.stringify(apt));
+            
+            const isMatch = apt.is_mutual_match === true;
+            const userVote = apt.votes?.[currentDisplayName];
+            const leoVoteText = formatVoteEmoji(apt.votes?.["Leo"]);
+            const ellaVoteText = formatVoteEmoji(apt.votes?.["Ella"]);
+            const isCompared = selectedForComparison.has(apt.id);
+
             const card = document.createElement("div");
-            card.className = "snap-card";
+            card.className = `snap-card ${isMatch ? 'mutual-match' : ''}`;
+            card.id = `apt-card-${apt.id}`;
             card.innerHTML = `
                 <div class="apt-info">
-                    <div class="apt-header-badges">
-                        <span class="status-badge ${statusClass}">${apt.status}</span>
-                        <span class="author-badge ${authorClass}">Added by ${author}</span>
+                    <div class="card-top-row">
+                        <div class="apt-header-badges">
+                            ${isMatch ? `<div class="mutual-badge"><span>💚</span> Mutual Match! Book Viewing</div>` : ''}
+                            <span class="status-badge ${statusClass}">${apt.status}</span>
+                            <span class="author-badge ${authorClass}">Added by ${author}</span>
+                        </div>
+                        <label class="compare-label" title="Select to compare (max 3)">
+                            <input type="checkbox" ${isCompared ? 'checked' : ''} onchange="toggleCompare(${apt.id}, this.checked)">
+                            Compare
+                        </label>
                     </div>
+
                     <a href="${apt.url}" target="_blank" class="apt-title-link">${escapeHtml(apt.title)}</a>
                     <div class="apt-stats">
                         <span class="badge bg-spec">${apt.price} €/kk</span>
                         <span class="badge bg-spec">${apt.size_m2} m²</span>
                         <span class="badge bg-spec">${apt.eur_per_m2} €/m²</span>
                     </div>
+
+                    <!-- 3-Tier Partner Voting (Phase 2) -->
+                    <div class="vote-section">
+                        <div class="vote-header">
+                            <span>Your Vote:</span>
+                            <div class="vote-status-summary">
+                                <span>Leo: ${leoVoteText}</span>
+                                <span>•</span>
+                                <span>Ella: ${ellaVoteText}</span>
+                            </div>
+                        </div>
+                        <div class="vote-btn-row">
+                            <button class="vote-btn btn-vote-love ${userVote === 'love' ? 'active-love' : ''}" onclick="castVote(${apt.id}, 'love')">
+                                💚 Love
+                            </button>
+                            <button class="vote-btn btn-vote-neutral ${userVote === 'neutral' ? 'active-neutral' : ''}" onclick="castVote(${apt.id}, 'neutral')">
+                                🟡 Neutral
+                            </button>
+                            <button class="vote-btn btn-vote-pass ${userVote === 'pass' ? 'active-pass' : ''}" onclick="castVote(${apt.id}, 'pass')">
+                                🔴 Pass
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Phase 3: Rules-Based Apartment Dossier / Brain Accordion -->
+                    ${buildDossierHtml(apt)}
+
                     ${notesHtml}
                 </div>
                 <div class="apt-actions">
@@ -406,6 +1210,8 @@ async function loadApartments() {
         observer.observe(section);
     }
     if (jumpBar.firstChild) jumpBar.firstChild.classList.add("active");
+    updateMutualMatchesCount();
+    updateDock();
 }
 
 function escapeHtml(str) {
@@ -421,7 +1227,7 @@ function editApt(encodedJson) {
     document.getElementById("m-size").value = apt.size_m2;
     document.getElementById("m-status").value = apt.status || "Interested";
     document.getElementById("m-notes").value = apt.notes || "";
-    document.getElementById("form-title").textContent = `Option A: Editing Listing (By ${apt.added_by || 'Leo'})`;
+    document.getElementById("form-title").textContent = `Editing: ${apt.title}`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -452,10 +1258,10 @@ async function submitManual() {
         return;
     }
     status.style.color = "#4ade80";
-    status.textContent = "Saved to board!";
+    status.textContent = "Saved to board & dossier generated!";
     ["m-url", "m-title", "m-area", "m-price", "m-size", "m-notes"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("m-status").value = "Interested";
-    document.getElementById("form-title").textContent = "Option A: Manual Entry / Edit";
+    document.getElementById("form-title").textContent = "Manual Entry / Edit";
     loadApartments();
 }
 
@@ -469,7 +1275,7 @@ async function submitScrape() {
         return;
     }
     status.style.color = "#94a3b8";
-    status.textContent = "Fetching listing from Vuokraovi...";
+    status.textContent = "Fetching listing & compiling dossier...";
     const headers = await apiHeaders();
     const res = await fetch("/api/apartments/scrape", {
         method: "POST",
@@ -483,16 +1289,245 @@ async function submitScrape() {
         return;
     }
     status.style.color = "#4ade80";
-    status.textContent = `Saved to ${data.asuinalue}!`;
+    status.textContent = `Saved to ${data.asuinalue}! Dossier compiled.`;
     document.getElementById("s-url").value = "";
     document.getElementById("s-area").value = "";
     loadApartments();
 }
 
 async function deleteApt(id) {
+    if (!confirm("Are you sure you want to delete this apartment?")) return;
     const headers = await apiHeaders();
     await fetch(`/api/apartments/${id}`, { method: "DELETE", headers });
+    selectedForComparison.delete(id);
+    openedDossiers.delete(id);
     loadApartments();
+}
+
+// -------------------------------------------------------------
+// Comparison Dock & Modal Logic (Phase 2 + Phase 3 specs)
+// -------------------------------------------------------------
+
+function toggleCompare(id, isChecked) {
+    if (isChecked) {
+        if (selectedForComparison.size >= 3) {
+            alert("You can select up to 3 apartments for side-by-side comparison.");
+            const checkbox = document.querySelector(`#apt-card-${id} input[type="checkbox"]`);
+            if (checkbox) checkbox.checked = false;
+            return;
+        }
+        selectedForComparison.add(id);
+    } else {
+        selectedForComparison.delete(id);
+    }
+    updateDock();
+}
+
+function clearComparison() {
+    selectedForComparison.clear();
+    document.querySelectorAll('.compare-label input[type="checkbox"]').forEach(cb => cb.checked = false);
+    updateDock();
+    closeComparisonModal();
+}
+
+function updateDock() {
+    const dock = document.getElementById("compare-dock");
+    const count = selectedForComparison.size;
+    const countEl = document.getElementById("dock-selected-count");
+    if (countEl) countEl.textContent = `${count} / 3`;
+
+    if (count >= 2) {
+        dock.classList.add("visible");
+    } else {
+        dock.classList.remove("visible");
+    }
+}
+
+function openComparisonModal() {
+    if (selectedForComparison.size < 2) return;
+    renderComparisonModalContent();
+    document.getElementById("compare-modal").classList.add("open");
+}
+
+function closeComparisonModal() {
+    document.getElementById("compare-modal").classList.remove("open");
+}
+
+function handleModalBackdropClick(e) {
+    if (e.target.id === "compare-modal") {
+        closeComparisonModal();
+    }
+}
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeComparisonModal();
+});
+
+function toggleDifferencesOnly(showDiffsOnly) {
+    const rows = document.querySelectorAll(".comparison-table tbody tr");
+    rows.forEach(row => {
+        const isDiff = row.getAttribute("data-is-diff") === "true";
+        if (showDiffsOnly && !isDiff) {
+            row.classList.add("hidden-row");
+        } else {
+            row.classList.remove("hidden-row");
+        }
+    });
+}
+
+function renderComparisonModalContent() {
+    const container = document.getElementById("modal-table-container");
+    const apts = Array.from(selectedForComparison).map(id => apartmentsCache[id]).filter(Boolean);
+
+    if (apts.length < 2) {
+        container.innerHTML = `<p style="text-align: center; color: var(--msg-color);">Please select at least 2 apartments to compare.</p>`;
+        return;
+    }
+
+    const prices = apts.map(a => a.price);
+    const minPrice = Math.min(...prices);
+
+    const eurPerM2s = apts.map(a => a.eur_per_m2);
+    const minEurPerM2 = Math.min(...eurPerM2s);
+
+    const showDiffsOnly = document.getElementById("diff-toggle")?.checked || false;
+
+    const specs = [
+        {
+            label: "Price (€/kk)",
+            render: (a) => {
+                const isLowest = a.price === minPrice;
+                const delta = a.price - minPrice;
+                const deltaPct = minPrice > 0 ? ((delta / minPrice) * 100).toFixed(1) : 0;
+                return `
+                    <strong>${a.price.toLocaleString('fi-FI')} €/kk</strong><br>
+                    ${isLowest 
+                        ? `<span class="delta-tag lowest">Lowest Price</span>` 
+                        : `<span class="delta-tag higher">+${delta.toLocaleString('fi-FI')} € (+${deltaPct}%)</span>`}
+                `;
+            },
+            isDifferent: () => new Set(apts.map(a => a.price)).size > 1
+        },
+        {
+            label: "Price per m²",
+            render: (a) => {
+                const isLowest = a.eur_per_m2 === minEurPerM2;
+                const delta = (a.eur_per_m2 - minEurPerM2).toFixed(1);
+                const deltaPct = minEurPerM2 > 0 ? ((delta / minEurPerM2) * 100).toFixed(1) : 0;
+                return `
+                    <strong>${a.eur_per_m2} €/m²</strong><br>
+                    ${isLowest 
+                        ? `<span class="delta-tag lowest">Lowest €/m²</span>` 
+                        : `<span class="delta-tag higher">+${delta} €/m² (+${deltaPct}%)</span>`}
+                `;
+            },
+            isDifferent: () => new Set(apts.map(a => a.eur_per_m2)).size > 1
+        },
+        {
+            label: "Size (m²)",
+            render: (a) => `<strong>${a.size_m2} m²</strong>`,
+            isDifferent: () => new Set(apts.map(a => a.size_m2)).size > 1
+        },
+        {
+            label: "Floor & Elevator",
+            render: (a) => {
+                const s = a.specs || {};
+                const floorStr = s.floor_str ? `Kerros ${escapeHtml(s.floor_str)}` : 'Kerros -';
+                const elStr = s.has_elevator === true ? '🛗 Hissi' : s.has_elevator === false ? 'Ei hissiä' : '';
+                return `<div>${floorStr}</div><div>${elStr}</div>`;
+            },
+            isDifferent: () => new Set(apts.map(a => `${a.specs?.floor_str || ''}-${a.specs?.has_elevator}`)).size > 1
+        },
+        {
+            label: "Water & Utilities",
+            render: (a) => {
+                const s = a.specs || {};
+                return s.water_included ? `<span style="color:#10b981; font-weight:700;">💧 Vesi sisältyy</span>` : (s.water_fee ? `💧 ${escapeHtml(s.water_fee)}` : '💧 Ei tietoa');
+            },
+            isDifferent: () => new Set(apts.map(a => a.specs?.water_included ? 'inc' : (a.specs?.water_fee || ''))).size > 1
+        },
+        {
+            label: "Balcony & Sauna",
+            render: (a) => {
+                const s = a.specs || {};
+                const b = s.balcony_type || (s.has_balcony ? 'Parveke' : 'Ei parveketta');
+                const sa = s.sauna_type || (s.has_sauna ? 'Oma sauna' : 'Ei saunaa');
+                return `<div>${escapeHtml(b)}</div><div>${escapeHtml(sa)}</div>`;
+            },
+            isDifferent: () => new Set(apts.map(a => `${a.specs?.balcony_type}-${a.specs?.sauna_type}`)).size > 1
+        },
+        {
+            label: "Pet Policy",
+            render: (a) => {
+                const s = a.specs || {};
+                return s.pets_allowed === true ? '🐾 Lemmikit sallittu' : s.pets_allowed === false ? '🚫 Ei lemmikkejä' : '🐾 Sopimuksen mukaan';
+            },
+            isDifferent: () => new Set(apts.map(a => `${a.specs?.pets_allowed}`)).size > 1
+        },
+        {
+            label: "Partner Votes",
+            render: (a) => {
+                const leo = formatVoteEmoji(a.votes?.["Leo"]);
+                const ella = formatVoteEmoji(a.votes?.["Ella"]);
+                const matchHtml = a.is_mutual_match ? `<div class="mutual-badge" style="margin-top: 6px; font-size: 0.75rem;">💚 Mutual Match</div>` : '';
+                return `<div>Leo: <strong>${leo}</strong></div><div>Ella: <strong>${ella}</strong></div>${matchHtml}`;
+            },
+            isDifferent: () => {
+                const votes = apts.map(a => `${a.votes?.['Leo'] || ''}-${a.votes?.['Ella'] || ''}`);
+                return new Set(votes).size > 1;
+            }
+        },
+        {
+            label: "Dossier Pros & Cons",
+            render: (a) => {
+                const s = a.specs || {};
+                const p = (s.pros || []).length;
+                const c = (s.cons || []).length;
+                return `
+                    <div style="font-weight:700;">+${p} Pros / -${c} Cons</div>
+                    <div style="font-size: 0.75rem; color: var(--msg-color); margin-top: 4px;">${escapeHtml(s.district_vibe || '')}</div>
+                `;
+            },
+            isDifferent: () => new Set(apts.map(a => `${(a.specs?.pros || []).length}-${(a.specs?.cons || []).length}`)).size > 1
+        }
+    ];
+
+    let html = `
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th class="col-header" style="width: 170px;">Specification</th>
+                    ${apts.map(a => `
+                        <th class="col-header">
+                            ${a.is_mutual_match ? `<div class="mutual-badge" style="margin-bottom: 6px;">💚 Mutual Match</div>` : ''}
+                            <a href="${a.url}" target="_blank" style="font-size: 1.05rem; display: block; margin-bottom: 4px;">
+                                ${escapeHtml(a.title)} ↗
+                            </a>
+                            <span style="font-size: 0.85rem; color: var(--msg-color); font-weight: normal;">📍 ${escapeHtml(a.asuinalue)}</span>
+                        </th>
+                    `).join('')}
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    specs.forEach(spec => {
+        const isDiff = spec.isDifferent();
+        const rowClass = (showDiffsOnly && !isDiff) ? 'hidden-row' : '';
+        html += `
+            <tr data-is-diff="${isDiff}" class="${rowClass}">
+                <td style="font-weight: 700; background: var(--modal-header-bg);">${spec.label}</td>
+                ${apts.map(a => `<td>${spec.render(a)}</td>`).join('')}
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = html;
 }
 
 // Auto-check session on load
