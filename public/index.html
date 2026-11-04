@@ -113,32 +113,7 @@
         [data-theme="dark"] .author-badge-leo { color: #38bdf8; }
         [data-theme="dark"] .author-badge-ella { color: #f472b6; }
         .notes-box { font-size: 0.95rem; color: var(--notes-text); background: var(--notes-bg); padding: 12px; border-radius: 10px; margin-top: 12px; border-left: 4px solid var(--notes-border); line-height: 1.5; }
-
         .msg { font-size: 0.9rem; margin: 8px 0 0 0; min-height: 1.2em; color: var(--msg-color); font-weight: 500; }
-
-        /* New Styles for Votes & Compare */
-        .vote-bar { display: flex; gap: 8px; margin-top: 8px; }
-        .vote-btn { flex: 1; padding: 6px; border: 1px solid var(--border-color); background: var(--card-bg); border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 1.1rem; }
-        .vote-btn:hover { background: var(--pill-bg); }
-        .vote-btn.active { border-color: var(--btn-primary); background: var(--pill-bg); font-weight: bold; box-shadow: inset 0 0 0 1px var(--btn-primary); }
-        .mutual-match { border: 2px solid #10b981 !important; }
-        .match-badge { display: block; background: #10b981; color: white; text-align: center; padding: 4px; border-radius: 8px; font-weight: bold; margin-bottom: 8px; font-size: 0.85rem; }
-        .partner-vote-msg { font-size: 0.8rem; color: var(--msg-color); margin-top: 4px; }
-
-        #compare-dock { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--card-bg); padding: 16px 24px; border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; align-items: center; gap: 16px; z-index: 100; border: 1px solid var(--btn-primary); }
-        #compare-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; z-index: 200; padding: 20px; align-items: center; justify-content: center; overflow-y: auto; }
-        .modal-content { background: var(--bg-color); width: 100%; max-width: 900px; padding: 24px; border-radius: 16px; border: 1px solid var(--border-color); }
-        .compare-grid { display: grid; gap: 1px; background: var(--border-color); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
-        .compare-grid > div { background: var(--card-bg); padding: 12px; text-align: center; font-size: 0.9rem; }
-        .cg-header { font-weight: bold; background: var(--pill-bg) !important; position: sticky; top: 0; }
-        .bg-green-100 { background-color: #dcfce7 !important; color: #166534; font-weight: bold; }
-        .bg-red-100 { background-color: #fee2e2 !important; color: #991b1b; }
-        [data-theme="dark"] .bg-green-100 { background-color: #064e3b !important; color: #a7f3d0; }
-        [data-theme="dark"] .bg-red-100 { background-color: #7f1d1d !important; color: #fecaca; }
-        .close-modal-btn { background: transparent; color: var(--text-color); border: 1px solid var(--border-color); width: auto; margin-top: 16px; }
-        .compare-cb { width: 16px; height: 16px; margin: 0; cursor: pointer; }
-        .apt-header-top { display: flex; justify-content: space-between; align-items: flex-start; }
-
         a { color: var(--link-color); text-decoration: none; font-weight: 700; transition: color 0.2s; }
         a:hover { color: var(--link-hover); text-decoration: underline; }
         #auth-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; }
@@ -236,28 +211,7 @@
     <div id="groups"></div>
 </div>
 
-
-<div id="compare-dock">
-    <span id="compare-count" style="font-weight: 600;">2 selected</span>
-    <button onclick="openComparison()" style="margin: 0; width: auto; padding: 8px 16px;">Open Comparison</button>
-</div>
-
-<div id="compare-modal">
-    <div class="modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h2 style="margin: 0;">Side-by-Side Comparison</h2>
-            <label style="font-size: 0.9rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                <input type="checkbox" id="diff-toggle" style="width:auto; margin:0;" onchange="renderComparison()">
-                Show Differences Only
-            </label>
-        </div>
-        <div id="compare-grid-container" style="overflow-x: auto; max-height: 70vh;"></div>
-        <button class="close-modal-btn" onclick="document.getElementById('compare-modal').style.display='none'">Close</button>
-    </div>
-</div>
-
 <script>
-
 // Replace these two strings with your actual Supabase credentials:
 const SUPABASE_PROJECT_URL = "https://fyrwiytzuxsebluygtjb.supabase.co";
 const SUPABASE_ANON_PUBLIC_KEY = "sb_publishable_EyvpHQRMoLrGmstxquNbfw_txuKKrex";
@@ -336,9 +290,6 @@ function setupRealtime() {
       .on("postgres_changes", { event: "*", schema: "public", table: "apartments" }, () => {
           loadApartments();
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "apartment_votes" }, () => {
-          loadApartments();
-      })
       .subscribe((status) => {
           const el = document.getElementById("sync-status");
           if (status === "SUBSCRIBED") {
@@ -351,7 +302,7 @@ function setupRealtime() {
 async function loadApartments() {
     const headers = await apiHeaders();
     const [sortBy, desc] = document.getElementById("sort-select").value.split("-");
-    const res = await fetch(`http://localhost:8000/api/apartments?sort_by=${sortBy}&desc=${desc}`, { headers });
+    const res = await fetch(`/api/apartments?sort_by=${sortBy}&desc=${desc}`, { headers });
     if (res.status === 401) {
         document.getElementById("auth-overlay").style.display = "flex";
         return;
@@ -426,38 +377,13 @@ async function loadApartments() {
             const author = apt.added_by || "Leo";
             const authorClass = author.toLowerCase() === "ella" ? "author-badge-ella" : "author-badge-leo";
             const safeAptJson = encodeURIComponent(JSON.stringify(apt));
-
-            // Votes Logic
-            const votes = apt.votes || [];
-            const myId = currentSession ? currentSession.user.id : null;
-            let myVote = null;
-            let partnerVote = null;
-            votes.forEach(v => {
-                if (v.user_id === myId) myVote = v.vote;
-                else partnerVote = v.vote;
-            });
-
-            const isMutual = myVote === '💚' && partnerVote === '💚';
-            const mutualBadge = isMutual ? `<span class="match-badge">💚 Mutual Match! Book Viewing</span>` : "";
-            const cardClass = isMutual ? "snap-card mutual-match" : "snap-card";
-
-            let partnerText = partnerVote ? `Partner: ${partnerVote}` : "Partner: No vote yet";
-
-            // Compare Checked state
-            const isChecked = window.compareList && window.compareList.find(c => c.id === apt.id) ? "checked" : "";
-            const isMaxed = window.compareList && window.compareList.length >= 3 && !isChecked ? "disabled" : "";
-
             const card = document.createElement("div");
-            card.className = cardClass;
+            card.className = "snap-card";
             card.innerHTML = `
                 <div class="apt-info">
-                    ${mutualBadge}
-                    <div class="apt-header-top">
-                        <div class="apt-header-badges">
-                            <span class="status-badge ${statusClass}">${apt.status}</span>
-                            <span class="author-badge ${authorClass}">Added by ${author}</span>
-                        </div>
-                        <label title="Compare"><input type="checkbox" class="compare-cb" onchange="toggleCompare('${safeAptJson}')" ${isChecked} ${isMaxed}></label>
+                    <div class="apt-header-badges">
+                        <span class="status-badge ${statusClass}">${apt.status}</span>
+                        <span class="author-badge ${authorClass}">Added by ${author}</span>
                     </div>
                     <a href="${apt.url}" target="_blank" class="apt-title-link">${escapeHtml(apt.title)}</a>
                     <div class="apt-stats">
@@ -465,14 +391,6 @@ async function loadApartments() {
                         <span class="badge bg-spec">${apt.size_m2} m²</span>
                         <span class="badge bg-spec">${apt.eur_per_m2} €/m²</span>
                     </div>
-
-                    <div class="vote-bar">
-                        <button class="vote-btn ${myVote==='💚'?'active':''}" onclick="castVote(${apt.id}, '💚')">💚</button>
-                        <button class="vote-btn ${myVote==='🟡'?'active':''}" onclick="castVote(${apt.id}, '🟡')">🟡</button>
-                        <button class="vote-btn ${myVote==='🔴'?'active':''}" onclick="castVote(${apt.id}, '🔴')">🔴</button>
-                    </div>
-                    <div class="partner-vote-msg">${partnerText}</div>
-
                     ${notesHtml}
                 </div>
                 <div class="apt-actions">
@@ -522,7 +440,7 @@ async function submitManual() {
         return;
     }
     const headers = await apiHeaders();
-    const res = await fetch("http://localhost:8000/api/apartments/manual", {
+    const res = await fetch("/api/apartments/manual", {
         method: "POST",
         headers,
         body: JSON.stringify({ url, title, asuinalue, price, size_m2, status: aptStatus, notes })
@@ -553,7 +471,7 @@ async function submitScrape() {
     status.style.color = "#94a3b8";
     status.textContent = "Fetching listing from Vuokraovi...";
     const headers = await apiHeaders();
-    const res = await fetch("http://localhost:8000/api/apartments/scrape", {
+    const res = await fetch("/api/apartments/scrape", {
         method: "POST",
         headers,
         body: JSON.stringify({ url, fallback_asuinalue })
@@ -573,111 +491,9 @@ async function submitScrape() {
 
 async function deleteApt(id) {
     const headers = await apiHeaders();
-    await fetch(`http://localhost:8000/api/apartments/${id}`, { method: "DELETE", headers });
+    await fetch(`/api/apartments/${id}`, { method: "DELETE", headers });
     loadApartments();
 }
-
-
-window.compareList = [];
-
-function toggleCompare(encodedJson) {
-    const apt = JSON.parse(decodeURIComponent(encodedJson));
-    const idx = window.compareList.findIndex(c => c.id === apt.id);
-    if (idx >= 0) {
-        window.compareList.splice(idx, 1);
-    } else {
-        if (window.compareList.length < 3) {
-            window.compareList.push(apt);
-        }
-    }
-
-    // Update dock
-    const dock = document.getElementById('compare-dock');
-    const count = document.getElementById('compare-count');
-    if (window.compareList.length >= 2) {
-        dock.style.display = 'flex';
-        count.textContent = `${window.compareList.length} selected`;
-    } else {
-        dock.style.display = 'none';
-    }
-
-    // Re-render to update checkboxes disabled states
-    loadApartments();
-}
-
-async function castVote(aptId, vote) {
-    if (!currentSession) return;
-    await sb.table('apartment_votes').upsert({
-        apartment_id: aptId,
-        user_id: currentSession.user.id,
-        vote: vote
-    }, { onConflict: 'apartment_id,user_id' });
-    // realtime will trigger reload
-}
-
-function renderComparison() {
-    if (window.compareList.length < 2) return;
-    const diffOnly = document.getElementById('diff-toggle').checked;
-
-    // Calculate min/max for highlights
-    const prices = window.compareList.map(a => a.price);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-
-    const eurM2s = window.compareList.map(a => a.eur_per_m2);
-    const minEur = Math.min(...eurM2s);
-    const maxEur = Math.max(...eurM2s);
-
-    const cols = window.compareList.length + 1;
-    let gridHtml = `<div class="compare-grid" style="grid-template-columns: 140px repeat(${cols-1}, 1fr);">`;
-
-    // Headers
-    gridHtml += `<div class="cg-header">Property</div>`;
-    window.compareList.forEach(a => {
-        gridHtml += `<div class="cg-header"><a href="${a.url}" target="_blank" style="font-size:0.9rem;">${escapeHtml(a.title)}</a></div>`;
-    });
-
-    // Rows generator
-    function addRow(label, getValue, getHighlight = null) {
-        const values = window.compareList.map(getValue);
-        const allSame = values.every(v => v === values[0]);
-        if (diffOnly && allSame) return; // skip row
-
-        gridHtml += `<div style="font-weight:600; text-align:left; background:var(--bg-color);">${label}</div>`;
-        window.compareList.forEach((a, i) => {
-            const val = values[i];
-            const hiClass = getHighlight ? getHighlight(val, a) : "";
-            gridHtml += `<div class="${hiClass}">${val}</div>`;
-        });
-    }
-
-    addRow('Status', a => a.status);
-    addRow('Price', a => `${a.price} €`, v => {
-        const p = parseFloat(v);
-        if (p === minPrice && minPrice !== maxPrice) return 'bg-green-100';
-        if (p === maxPrice && minPrice !== maxPrice) return 'bg-red-100';
-        return '';
-    });
-    addRow('Size', a => `${a.size_m2} m²`);
-    addRow('€ / m²', a => `${a.eur_per_m2} €/m²`, v => {
-        const e = parseFloat(v);
-        if (e === minEur && minEur !== maxEur) return 'bg-green-100';
-        if (e === maxEur && minEur !== maxEur) return 'bg-red-100';
-        return '';
-    });
-    addRow('Area', a => a.asuinalue);
-
-    gridHtml += `</div>`;
-
-    document.getElementById('compare-grid-container').innerHTML = gridHtml;
-}
-
-function openComparison() {
-    document.getElementById('compare-modal').style.display = 'flex';
-    renderComparison();
-}
-
-// Ensure init calls
 
 // Auto-check session on load
 sb.auth.getSession().then(({ data: { session } }) => {
