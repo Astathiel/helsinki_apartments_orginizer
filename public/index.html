@@ -1196,10 +1196,12 @@ function initOrUpdateMap() {
             zoomControl: true
         });
 
-        // OpenStreetMap carto tile layer
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        // CARTO Voyager Tile Layer with User API Key
+        const cartoKey = "cb1_51x1_1_2bcf3364a1a5671df78c167b";
+        L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoKey}`, {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            maxZoom: 19
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(leafletMap);
 
         // MarkerCluster Group
