@@ -84,6 +84,10 @@ class ScrapeApartmentInput(BaseModel):
     def validate_url(cls, value: str) -> str:
         return normalize_url(value)
 
+class ApartmentVoteInput(BaseModel):
+    apartment_id: int
+    vote: str = Field(..., pattern="^(love|neutral|pass)$")
+
 class VuokraoviScraper:
     def __init__(self):
         self.headers = {
@@ -154,6 +158,21 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
     sb = get_supabase()
     res = sb.table("apartments").select("*").order("asuinalue", desc=False).execute()
     rows = res.data or []
+
+    # Retrieve votes from apartment_votes table if available
+    votes_by_apt = {}
+    try:
+        votes_res = sb.table("apartment_votes").select("*").execute()
+        for v in (votes_res.data or []):
+            apt_id = v.get("apartment_id")
+            user_name = v.get("user_name")
+            vote_val = v.get("vote")
+            if apt_id and user_name:
+                votes_by_apt.setdefault(apt_id, {})[user_name] = vote_val
+    except Exception:
+        # If apartment_votes table is not yet created or queries fail, gracefully continue
+        pass
+
     grouped = {}
     for item in rows:
         price = float(item.get("price", 0))
@@ -162,7 +181,15 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
         area = item.get("asuinalue", "Tuntematon")
         if not item.get("added_by"):
             item["added_by"] = "Leo"
+
+        # Populate votes and mutual match flag
+        apt_id = item.get("id")
+        apt_votes = votes_by_apt.get(apt_id, {})
+        item["votes"] = apt_votes
+        item["is_mutual_match"] = (apt_votes.get("Leo") == "love" and apt_votes.get("Ella") == "love")
+
         grouped.setdefault(area, []).append(item)
+
     sort_key = sort_by if sort_by in ("price", "size_m2", "eur_per_m2") else "price"
     for area in grouped:
         grouped[area].sort(key=lambda x: x.get(sort_key, 0), reverse=desc)
@@ -199,10 +226,48 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
+@app.post("/apartments/vote")
+@app.post("/api/apartments/vote")
+def cast_vote(payload: ApartmentVoteInput, authorization: str = Header(None)):
+    user = get_current_user(authorization)
+    user_name = user["display_name"]
+    sb = get_supabase()
+    vote_data = {
+        "apartment_id": payload.apartment_id,
+        "user_name": user_name,
+        "vote": payload.vote
+    }
+
+    try:
+        sb.table("apartment_votes").upsert(vote_data, on_conflict="apartment_id,user_name").execute()
+    except Exception:
+        sb.table("apartment_votes").upsert(vote_data).execute()
+
+    # Calculate mutual match
+    is_match = False
+    try:
+        votes_res = sb.table("apartment_votes").select("*").eq("apartment_id", payload.apartment_id).execute()
+        vote_dict = {row.get("user_name"): row.get("vote") for row in (votes_res.data or [])}
+        is_match = (vote_dict.get("Leo") == "love" and vote_dict.get("Ella") == "love")
+    except Exception:
+        pass
+
+    return {
+        "status": "saved",
+        "apartment_id": payload.apartment_id,
+        "user_name": user_name,
+        "vote": payload.vote,
+        "is_mutual_match": is_match
+    }
+
 @app.delete("/apartments/{apt_id}")
 @app.delete("/api/apartments/{apt_id}")
 def remove_apartment(apt_id: int, authorization: str = Header(None)):
     get_current_user(authorization)
     sb = get_supabase()
     sb.table("apartments").delete().eq("id", apt_id).execute()
+    try:
+        sb.table("apartment_votes").delete().eq("apartment_id", apt_id).execute()
+    except Exception:
+        pass
     return {"deleted": apt_id}
