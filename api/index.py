@@ -550,7 +550,12 @@ class ScrapeApartmentInput(BaseModel):
     @field_validator("url")
     @classmethod
     def validate_url(cls, value: str) -> str:
-        return normalize_url(value)
+        normalized = normalize_url(value)
+        parts = urlsplit(normalized)
+        netloc = parts.netloc.lower()
+        if netloc != "vuokraovi.com" and netloc != "www.vuokraovi.com":
+            raise ValueError("Only Vuokraovi URLs are allowed for scraping.")
+        return normalized
 
 class ApartmentVoteInput(BaseModel):
     apartment_id: int
