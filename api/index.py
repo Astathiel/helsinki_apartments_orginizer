@@ -131,22 +131,39 @@ RE_STREET_SUFFIX = re.compile(r"\b([\w\-]+(?:katu|tie|kuja|polku|kaari|raitti|v\
 RE_GENERIC_STREET = re.compile(r"\b([\w\-]{3,}\s+\d+\s*[A-Za-z]?)\b")
 RE_NON_STREET_WORDS = re.compile(r"\b(huonetta|kerros|krs|m2|kk)\b", re.IGNORECASE)
 
-RE_FLOOR_DOUBLE = re.compile(r"(?:kerros[:\s]*|krs[:\s]*)?(\d+)\s*/\s*(\d+)", re.IGNORECASE)
-RE_FLOOR_SINGLE = re.compile(r"kerros[:\s]*(\d+)", re.IGNORECASE)
-RE_ELEVATOR_YES = re.compile(r"(?:talossa\s+(?:on\s+)?hissi|hissi\s*:\s*(?:on|kyllä)|on\s+hissi)", re.IGNORECASE)
-RE_ELEVATOR_NO = re.compile(r"(?:ei\s+hissiä|hissi\s*:\s*ei)", re.IGNORECASE)
-RE_WATER_INCL = re.compile(r"vesi(?:maksu)?\s+sisältyy(?:\s+vuokraan)?", re.IGNORECASE)
-RE_WATER_FEE = re.compile(r"vesimaksu[:\s]*(\d+[\d\s,.]*)\s*€(?:\s*/\s*(?:hlö|kk|kuukausi|hlö/kk))?", re.IGNORECASE)
+RE_FLOOR_DOUBLE = re.compile(r"(?:kerros(?:ta|kset)?|krs\.?)\s*:?\s*(\d{1,2})\s*/\s*(\d{1,2})\b", re.IGNORECASE)
+RE_FLOOR_DOUBLE_REV = re.compile(r"\b(\d{1,2})\s*/\s*(\d{1,2})\s*(?:krs|kerros)\b", re.IGNORECASE)
+RE_FLOOR_SINGLE = re.compile(r"(?:kerros(?:ta|kset)?|krs\.?)\s*:?\s*(\d{1,2})\b", re.IGNORECASE)
+RE_FLOOR_SINGLE_REV = re.compile(r"\b(\d{1,2})\s*\.\s*(?:kerros|krs)\b", re.IGNORECASE)
+
+RE_ELEVATOR_YES = re.compile(r"(?:talossa\s+(?:on\s+)?hissi|hissi\s*:\s*(?:on|kyllä)|on\s+hissi|\bhissitalo\b)", re.IGNORECASE)
+RE_ELEVATOR_NO = re.compile(r"(?:ei\s+hissiä|hissi\s*:\s*ei|ei\s+hissi\b)", re.IGNORECASE)
+RE_WATER_INCL = re.compile(r"vesi(?:maksu)?\s+(?:sisältyy|sis\.)(?:\s+vuokraan)?", re.IGNORECASE)
+RE_WATER_FEE = re.compile(r"vesimaksu[:\s]*(\d{1,3}(?:[.,]\d{1,2})?)\s*€(?:\s*/\s*(?:hlö|kk|kuukausi|hlö/kk))?", re.IGNORECASE)
 RE_PETS_YES = re.compile(r"lemmik(?:it|kieläimet)\s+(?:ovat\s+)?sallittu", re.IGNORECASE)
-RE_PETS_NO = re.compile(r"(?:ei\s+lemmikkejä|lemmikit\s+kielletty)", re.IGNORECASE)
+RE_PETS_NO = re.compile(r"(?:ei\s+lemmikkejä|lemmikit\s+kielletty|lemmikkikielto)", re.IGNORECASE)
 RE_PETS_AGREEMENT = re.compile(r"lemmik(?:it|eistä)\s+sopimuksen\s+mukaan", re.IGNORECASE)
-RE_BALCONY_GLAZED = re.compile(r"lasitettu(?:\s+oma)?\s+parveke", re.IGNORECASE)
+RE_BALCONY_GLAZED = re.compile(r"(?:lasitettu(?:\s+oma)?\s+parveke|parveke\s*:\s*lasitettu)", re.IGNORECASE)
 RE_BALCONY_FRENCH = re.compile(r"ranskalainen\s+parveke", re.IGNORECASE)
-RE_BALCONY_ANY = re.compile(r"(?<!ei\s)parveke", re.IGNORECASE)
-RE_BALCONY_NO = re.compile(r"ei\s+parveketta", re.IGNORECASE)
-RE_SAUNA_OWN = re.compile(r"(?:oma\s+sauna|sauna\s*:\s*(?:on|kyllä))", re.IGNORECASE)
-RE_SAUNA_BLDG = re.compile(r"(?:taloyhti(?:össä|ön)\s+sauna|talosauna)", re.IGNORECASE)
-RE_SAUNA_NO = re.compile(r"ei\s+saunaa", re.IGNORECASE)
+RE_BALCONY_TERRACE = re.compile(r"(?:oma\s+terassi|asuntopiha|terassi|maantasoterassi)", re.IGNORECASE)
+RE_BALCONY_ANY = re.compile(r"(?<!ei\s)(?<!ei\somaa\s)parveke", re.IGNORECASE)
+RE_BALCONY_NO = re.compile(r"(?:ei\s+parveketta|ei\s+omaa\s+parveketta)", re.IGNORECASE)
+RE_SAUNA_OWN = re.compile(r"(?:oma\s+sauna|sauna\s*:\s*(?:on|kyllä|oma))", re.IGNORECASE)
+RE_SAUNA_BLDG = re.compile(r"(?:taloyhti(?:össä|ön)\s+sauna|talosauna|sauna\s*:\s*taloyhtiössä)", re.IGNORECASE)
+RE_SAUNA_NO = re.compile(r"(?:ei\s+saunaa|sauna\s*:\s*ei)", re.IGNORECASE)
+
+# Notification / Listing page deep heuristics
+RE_CONDITION = re.compile(r"kunto\s*:?\s*([\w\s\-]+?)(?:,|\.|\n|$)", re.IGNORECASE)
+RE_YEAR_BUILT = re.compile(r"(?:rakennusvuosi|rakennettu|valmistumisvuosi|valmistunut)\s*:?\s*(19\d\d|20\d\d)\b", re.IGNORECASE)
+RE_DISHWASHER_YES = re.compile(r"(?:astianpesukone|tiskikone|\bapk\b)", re.IGNORECASE)
+RE_DISHWASHER_NO = re.compile(r"(?:ei\s+(?:ole\s+)?(?:astianpesukonetta|tiskikonetta|apk))", re.IGNORECASE)
+RE_WASHER_HOOKUP = re.compile(r"(?:pesukoneliitäntä|liitäntä\s+pyykinpesukoneelle|\bpk-liitäntä\b)", re.IGNORECASE)
+RE_LAUNDRY_ROOM = re.compile(r"(?:talopesula|pesutupa|kuivaushuone)", re.IGNORECASE)
+RE_WALK_IN_CLOSET = re.compile(r"\b(?:vaatehuone|\bvh\b)\b", re.IGNORECASE)
+RE_STORAGE = re.compile(r"(?:kellarikomero|vinttikomero|irtaimistovarasto|lämmin\s+varasto|häkkivarasto)", re.IGNORECASE)
+RE_INTERNET_INCL = re.compile(r"(?:taloyhtiölaajakaista|laajakaista\s+sisältyy|valokuitu|perusnopeus\s+sisältyy|netti\s+sisältyy)", re.IGNORECASE)
+RE_DEPOSIT_LOW = re.compile(r"vakuus\s*:?\s*(?:0\s*€|ei\s+vakuutta|1\s*kk\b|1\s*kuukauden)", re.IGNORECASE)
+RE_FREE_IMMEDIATELY = re.compile(r"\b(?:heti\s+vapaa|vapaa\s+heti)\b", re.IGNORECASE)
 
 def clean_street_address(title: str, asuinalue: str) -> str:
     """
@@ -256,6 +273,118 @@ def geocode_address_hsl(title: str, asuinalue: str) -> tuple[float, float]:
 # =====================================================================
 
 HELSINKI_DISTRICT_PROFILES = {
+    "Kuninkaantammi": {
+        "vibe": "Moderni, värikäs ja ekologinen uusi kaupunginosa Keskuspuiston ja Vantaanjoen syleilyssä",
+        "pros": [
+            "Keskuspuiston ulkoilureitit ja Palettilammen uimaranta aivan vieressä",
+            "Energiatehokasta, uutta ja raikasta asuntokantaa (valmistunut 2017+)",
+            "Rauhallinen, luonnonläheinen ja esteetön asuinympäristö"
+        ],
+        "cons": [
+            "Ei omaa juna- tai metroasemaa, kulku nojaa runkolinja 560:een ja liityntäbusseihin",
+            "Laajemmat kaupalliset palvelut vaativat siirtymistä Kaareen tai Myyrmäkeen"
+        ]
+    },
+    "Kannelmäki": {
+        "vibe": "Vihreä raidekaupunginosa ja kauppakeskus Kaaren kattavat palvelut",
+        "pros": [
+            "Kauppakeskus Kaari (Helsingin 5. suurin) kävelyetäisyydellä",
+            "Lähijunat I ja P vievät 13 minuutissa Helsingin keskustaan ja lentoasemalle",
+            "Mätäjoen vehreät ulkoilureitit ja puistoalueet"
+        ],
+        "cons": [
+            "Kerrostaloissa vaihteleva ikärakenne",
+            "Asemanseudulla vilkasta kauttakulkuliikennettä"
+        ]
+    },
+    "Kaarela": {
+        "vibe": "Luonnonläheinen länsihelsinkiläinen raidealue ja huippumaisemat",
+        "pros": [
+            "Kehäradan lähijunayhteys suoraan Pasilaan, keskustaan ja lentoasemalle",
+            "Malminkartanon täyttömäki ja portaat tarjoavat loistavat treenimaastot"
+        ],
+        "cons": [
+            "Palvelut painottuvat lähiostareille, isompiin kauppakeskuksiin tarvitaan bussia tai junaa"
+        ]
+    },
+    "Malminkartano": {
+        "vibe": "Rauhallinen raidealue Länsi-Helsingissä loistavilla ulkoilumaastoilla",
+        "pros": [
+            "Kehäradan lähijunapysäkki: suora ja nopea yhteys keskustaan sekä lentoasemalle",
+            "Malminkartanonhupun huippunäkymät ja ulkoilupuistot"
+        ],
+        "cons": [
+            "Kivijalkapalvelut rajalliset ilman siirtymistä Myyrmäkeen tai Kaareen"
+        ]
+    },
+    "Pohjois-Haaga": {
+        "vibe": "Vehreä, puistomainen ja väljästi rakennettu raidekaupunginosa",
+        "pros": [
+            "Lähijuna-asema (10 min keskustaan)",
+            "Lähellä Pirkkolan urheilupuistoa ja Keskuspuiston reittejä",
+            "Väljät, rauhalliset puistopihat ja luontoa ympärillä"
+        ],
+        "cons": [
+            "Osa 60–70-luvun taloyhtiöistä voi kaivata tulevia peruskorjauksia"
+        ]
+    },
+    "Etelä-Haaga": {
+        "vibe": "Idyllinen, puutarhakaupunkimainen ja erittäin arvostettu asuinalue",
+        "pros": [
+            "Huopalahden risteysasema: kaikki lähijunat ja Raide-Jokeri pikaraitiotie 15",
+            "Alppiruusupuisto ja rauhallinen huvilamiljöö",
+            "Korkea asumisviihtyvyys ja turvallinen tunnelma"
+        ],
+        "cons": [
+            "Korkeahko vuokrataso",
+            "Asuntoja vapautuu harvoin"
+        ]
+    },
+    "Haaga": {
+        "vibe": "Viihtyisä ja vehreä perinteinen länsihelsinkiläinen kaupunginosa",
+        "pros": [
+            "Erinomaiset liikenneyhteydet: useita juna-asemia ja Raide-Jokeri",
+            "Paljon puistoja, urheilukenttiä ja Keskuspuiston läheisyys"
+        ],
+        "cons": [
+            "Vaihteleva rakennuskanta ja neliövuokrataso"
+        ]
+    },
+    "Meilahti": {
+        "vibe": "Merellinen, arvostettu ja puistomainen kantakaupungin helmi",
+        "pros": [
+            "Seurasaaren ja Meilahden rantapuiston upeat ulkoilureitit",
+            "Raitiovaunut 4, 10 ja useat bussilinjat suoraan keskustaan",
+            "Rauhallinen ja siisti arvoalue"
+        ],
+        "cons": [
+            "Korkea hintataso",
+            "Sairaala-alueen lähistöllä ajoittain hälytysajoneuvojen ääniä"
+        ]
+    },
+    "Munkkiniemi": {
+        "vibe": "Klassinen, merellinen ja puistomainen kulttuurimiljöö",
+        "pros": [
+            "Raitiovaunu 4 kotiovelta suoraan ydinkeskustaan",
+            "Munkkiniemen uimaranta, rantakahvilat ja Alvar Aallon puistot",
+            "Vakaa, vehreä ja arvostettu naapurusto"
+        ],
+        "cons": [
+            "Helsingin korkeimpia neliövuokria",
+            "Vanhemmissa taloissa usein portaat ilman hissiä"
+        ]
+    },
+    "Pasila": {
+        "vibe": "Liikenteen ja kaupan sykkivä keskus Mall of Triplan kupeessa",
+        "pros": [
+            "Kaikki Suomen junat pysähtyvät Pasilassa (5 min keskustaan)",
+            "Mall of Triplan sadat kaupat, ravintolat ja viihdepalvelut",
+            "Keskuspuiston viheralueet alkavat suoraan Länsi-Pasilasta"
+        ],
+        "cons": [
+            "Urbaani häly, tiheä liikenne ja alueen jatkuvat rakennustyöt"
+        ]
+    },
     "Pohjois-Pasila": {
         "vibe": "Uusi, moderni asuinalue Keskuspuiston vihreässä kainalossa",
         "pros": [
@@ -269,7 +398,7 @@ HELSINKI_DISTRICT_PROFILES = {
         ]
     },
     "Kruunuvuorenranta": {
-        "vibe": "Merellinen ja luonnonläheinen saaristokaupunginosa",
+        "vibe": "Merellinen ja luonnonläheinen saaristokaupunginosa upeilla maisemilla",
         "pros": [
             "Upeat merimaisemat, kalliorannat ja laajat ulkoilualueet",
             "Kruunusillat-pikaraitiotie valmistumassa suoraan Helsingin keskustaan",
@@ -374,6 +503,109 @@ HELSINKI_DISTRICT_PROFILES = {
             "Jatkuva ihmisvirta ja kaupungin äänet",
             "Vuokrataso Helsingin kärkiluokkaa"
         ]
+    },
+    "Kalasatama": {
+        "vibe": "Merellinen, moderni ja futuristinen tornitalojen kaupunginosa",
+        "pros": [
+            "Kauppakeskus Redi ja oma metroasema heti vieressä",
+            "Isoisänsilta vie suoraan Mustikkamaan ulkoilusaareen ja uimarannalle",
+            "Uutta, energiatehokasta ja laadukasta talotekniikkaa"
+        ],
+        "cons": [
+            "Tiivis ja tuulinen rantamaisema",
+            "Alueella edelleen osittaista rakentamista Sompasaaren suunnalla"
+        ]
+    },
+    "Jätkäsaari": {
+        "vibe": "Merellinen, urbaani ja kansainvälinen satamakaupunginosa",
+        "pros": [
+            "Raitiovaunut 7, 8 ja 9 kulkevat suoraan kotiovelta",
+            "Uudet, modernit talot laadukkailla pohjaratkaisuilla",
+            "Ruoholahden metro ja merelliset rantapromenadit lähellä"
+        ],
+        "cons": [
+            "Satamaliikenne ja laivojen purkautuminen ruuhkauttavat ajoittain katuja",
+            "Talvella merituuli voi olla viileä"
+        ]
+    },
+    "Ruoholahti": {
+        "vibe": "Kanavakaupunginosa kantakaupungin kyljessä loistavilla yhteyksillä",
+        "pros": [
+            "Oma metroasema, raitiovaunut ja nopea pyöräreitti Baana keskustaan",
+            "Kaapelitehtaan kulttuurikeskus ja kanavanvarren ravintolat",
+            "Kattavat ruokakaupat ja liikuntamahdollisuudet"
+        ],
+        "cons": [
+            "Länsiväylän liikenneäänet alueen eteläosassa"
+        ]
+    },
+    "Vallila": {
+        "vibe": "Trendikäs yhdistelmä Puu-Vallilan idylliä ja urbaania teollisuusestetiikkaa",
+        "pros": [
+            "Konepajan ja Teollisuuskadun ravintolat, panimot ja kulttuuritapahtumat",
+            "Tiheät raitio- ja bussiyhteydet Mäkelän- ja Hämeentietä",
+            "Puu-Vallilan viehättävä puutaloidylli ja puistot"
+        ],
+        "cons": [
+            "Pääväylien varrella vilkasta liikennettä",
+            "Vanhemmissa taloissa usein pienemmät kylpyhuoneet"
+        ]
+    },
+    "Käpylä": {
+        "vibe": "Vihreä puutarhakaupunki ja rauhallinen yhteisöllinen miljöö",
+        "pros": [
+            "Puu-Käpylän historiallinen puutarhamiljöö ja upeat puistot",
+            "Käpylän juna-asema ja raitiovaunu 1 vievät nopeasti keskustaan",
+            "Kumpulan maauimala ja siirtolapuutarhat lähellä"
+        ],
+        "cons": [
+            "Käpyläntien ja Mäkelänkadun varrella vilkasta liikennettä"
+        ]
+    },
+    "Herttoniemi": {
+        "vibe": "Monipuolinen ja kehittyvä itäisen kantakaupungin solmukohta meren rannalla",
+        "pros": [
+            "Metroasema vie 10 minuutissa Kamppiin",
+            "Herttoniemenrannan rantapolut ja Kivinokan luontoidylli",
+            "Monipuoliset kaupat ja kauppakeskus Hertsi"
+        ],
+        "cons": [
+            "Itäväylä halkoo aluetta tuoden liikenteen ääntä"
+        ]
+    },
+    "Vuosaari": {
+        "vibe": "Meriluonnon ja rantojen paratiisi: Aurinkolahti ja Uutelan luonnonsuojelualue",
+        "pros": [
+            "Uutelan laajat luonnonsuojelualueet ja Aurinkolahden hiekkaranta",
+            "Metro vie suoraan keskustaan",
+            "Kauppakeskus Columbus ja monipuoliset harrastusmahdollisuudet"
+        ],
+        "cons": [
+            "Pidempi matka ydinkeskustaan (n. 20–25 min metrolla)"
+        ]
+    },
+    "Malmi": {
+        "vibe": "Koillisen Helsingin vilkas raide- ja palvelukeskus",
+        "pros": [
+            "Kaikki lähijunat pysähtyvät Malmilla (10–12 min keskustaan)",
+            "Erittäin laajat kaupalliset ja julkiset palvelut (Malmintori, uimahalli, kirjasto)",
+            "Edullisempi neliöhinta ja vuokrataso"
+        ],
+        "cons": [
+            "Aseman ympäristössä vilkasta ilta-aikaan",
+            "Vaihteleva rakennuskanta"
+        ]
+    },
+    "Viikki": {
+        "vibe": "Tiedepuisto, luonto ja Raide-Jokerin pikaraitiotie",
+        "pros": [
+            "Raide-Jokeri pikaraitiotie 15 ja tiheät bussilinjat",
+            "Viikin arboretum ja Vanhankaupunginlahden lintukosteikot",
+            "Viihtyisää ja luonnonläheistä asumista"
+        ],
+        "cons": [
+            "Ei suoraa metro- tai junayhteyttä"
+        ]
     }
 }
 
@@ -390,21 +622,35 @@ def extract_specs_from_text(text: str) -> dict:
         "balcony_type": None,
         "has_sauna": None,
         "sauna_type": None,
+        "condition": None,
+        "year_built": None,
+        "has_dishwasher": None,
+        "has_washing_machine_hookup": None,
+        "has_laundry_room": None,
+        "has_walk_in_closet": None,
+        "has_storage": None,
+        "internet_included": None,
+        "low_deposit": None,
+        "free_immediately": None,
     }
 
-    floor_match = RE_FLOOR_DOUBLE.search(text)
+    # Strict floor extraction (requires 'kerros' or 'krs', enforces max 50 floors)
+    floor_match = RE_FLOOR_DOUBLE.search(text) or RE_FLOOR_DOUBLE_REV.search(text)
     if floor_match:
         f = int(floor_match.group(1))
         tf = int(floor_match.group(2))
-        specs["floor"] = f
-        specs["total_floors"] = tf
-        specs["floor_str"] = f"{f}/{tf}"
-    else:
-        single_floor = RE_FLOOR_SINGLE.search(text)
+        if 1 <= f <= 50 and 1 <= tf <= 50 and f <= tf:
+            specs["floor"] = f
+            specs["total_floors"] = tf
+            specs["floor_str"] = f"{f}/{tf}"
+    
+    if not specs["floor"]:
+        single_floor = RE_FLOOR_SINGLE.search(text) or RE_FLOOR_SINGLE_REV.search(text)
         if single_floor:
             f = int(single_floor.group(1))
-            specs["floor"] = f
-            specs["floor_str"] = f"{f}"
+            if 1 <= f <= 50:
+                specs["floor"] = f
+                specs["floor_str"] = f"{f}"
 
     if RE_ELEVATOR_YES.search(text):
         specs["has_elevator"] = True
@@ -434,6 +680,9 @@ def extract_specs_from_text(text: str) -> dict:
     elif RE_BALCONY_FRENCH.search(text):
         specs["has_balcony"] = True
         specs["balcony_type"] = "Ranskalainen parveke"
+    elif RE_BALCONY_TERRACE.search(text):
+        specs["has_balcony"] = True
+        specs["balcony_type"] = "Oma terassi / piha"
     elif RE_BALCONY_ANY.search(text):
         specs["has_balcony"] = True
         specs["balcony_type"] = "Parveke"
@@ -451,74 +700,196 @@ def extract_specs_from_text(text: str) -> dict:
         specs["has_sauna"] = False
         specs["sauna_type"] = "Ei saunaa"
 
+    # Listing page deep heuristics
+    cond_match = RE_CONDITION.search(text)
+    if cond_match:
+        c_raw = cond_match.group(1).strip().capitalize()
+        if any(w in c_raw.lower() for w in ("erinomainen", "uusi", "uutta vastaava", "hyvä", "tyydyttävä", "remontoitu", "vastaremontoitu")):
+            specs["condition"] = c_raw
+
+    yb_match = RE_YEAR_BUILT.search(text)
+    if yb_match:
+        specs["year_built"] = int(yb_match.group(1))
+
+    if RE_DISHWASHER_NO.search(text):
+        specs["has_dishwasher"] = False
+    elif RE_DISHWASHER_YES.search(text):
+        specs["has_dishwasher"] = True
+
+    if RE_WASHER_HOOKUP.search(text):
+        specs["has_washing_machine_hookup"] = True
+    if RE_LAUNDRY_ROOM.search(text):
+        specs["has_laundry_room"] = True
+
+    if RE_WALK_IN_CLOSET.search(text):
+        specs["has_walk_in_closet"] = True
+    if RE_STORAGE.search(text):
+        specs["has_storage"] = True
+
+    if RE_INTERNET_INCL.search(text):
+        specs["internet_included"] = True
+
+    if RE_DEPOSIT_LOW.search(text):
+        specs["low_deposit"] = True
+
+    if RE_FREE_IMMEDIATELY.search(text):
+        specs["free_immediately"] = True
+
     return specs
 
 def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str = "", extracted_specs: dict = None, lat: float = None, lon: float = None) -> dict:
-    specs = extract_specs_from_text(raw_text)
+    specs = extract_specs_from_text(raw_text) if raw_text else {}
     if extracted_specs:
         for k, v in extracted_specs.items():
             if v is not None:
                 specs[k] = v
+
+    # Sanitize floor so corrupted numbers (> 50 or < 1) are permanently eliminated
+    if specs.get("floor") is not None:
+        try:
+            f_num = int(specs["floor"])
+            if f_num < 1 or f_num > 50:
+                specs["floor"] = None
+                specs["total_floors"] = None
+                specs["floor_str"] = None
+            else:
+                specs["floor"] = f_num
+        except Exception:
+            specs["floor"] = None
+            specs["total_floors"] = None
+            specs["floor_str"] = None
+
+    if specs.get("total_floors") is not None:
+        try:
+            tf_num = int(specs["total_floors"])
+            if tf_num < 1 or tf_num > 50 or (specs.get("floor") and specs["floor"] > tf_num):
+                specs["total_floors"] = None
+                if specs.get("floor"):
+                    specs["floor_str"] = f"{specs['floor']}"
+        except Exception:
+            specs["total_floors"] = None
 
     eur_per_m2 = round(price / size_m2, 2) if size_m2 > 0 else 0.0
 
     pros = []
     cons = []
 
+    # 1. Size-aware €/m² evaluation
     if eur_per_m2 > 0:
-        if eur_per_m2 <= 21.0:
-            pros.append(f"Erinomainen neliöhinta: {eur_per_m2} €/m² (selvästi alle Helsingin keskiarvon)")
-        elif eur_per_m2 <= 25.5:
-            pros.append(f"Kilpailukykyinen neliöhinta: {eur_per_m2} €/m²")
-        elif eur_per_m2 >= 32.0:
-            cons.append(f"Korkeahko neliövuokra: {eur_per_m2} €/m²")
+        if size_m2 <= 35:
+            # Studios / Yksiöt
+            if eur_per_m2 <= 23.5:
+                pros.append(f"Edullinen neliöhinta yksiölle: {eur_per_m2} €/m² (Helsingissä tyypillisesti 26–31 €/m²)")
+            elif eur_per_m2 <= 27.5:
+                pros.append(f"Kohtuullinen neliöhinta yksiölle: {eur_per_m2} €/m²")
+            elif eur_per_m2 >= 34.0:
+                cons.append(f"Korkeahko neliövuokra yksiöksi: {eur_per_m2} €/m²")
+        elif size_m2 <= 55:
+            # 2 rooms / Kaksiot
+            if eur_per_m2 <= 19.5:
+                pros.append(f"Erinomainen neliöhinta kaksiolle: {eur_per_m2} €/m² (selvästi alle Helsingin keskiarvon)")
+            elif eur_per_m2 <= 23.5:
+                pros.append(f"Kilpailukykyinen neliöhinta kaksiolle: {eur_per_m2} €/m²")
+            elif eur_per_m2 >= 28.0:
+                cons.append(f"Korkeahko neliövuokra kaksiolle: {eur_per_m2} €/m²")
+        else:
+            # 3+ rooms / Perheasunnot
+            if eur_per_m2 <= 17.5:
+                pros.append(f"Erinomainen neliöhinta: {eur_per_m2} €/m²")
+            elif eur_per_m2 <= 21.0:
+                pros.append(f"Kilpailukykyinen neliöhinta: {eur_per_m2} €/m²")
+            elif eur_per_m2 >= 25.5:
+                cons.append(f"Korkeahko neliövuokra: {eur_per_m2} €/m²")
 
+    # 2. Floor & Elevator Heuristics
     floor = specs.get("floor")
     total_floors = specs.get("total_floors")
     has_elevator = specs.get("has_elevator")
 
-    if floor and total_floors:
-        if floor == total_floors and total_floors >= 2:
-            pros.append(f"Ylin kerros ({floor}/{total_floors}): ei yläkerran askelääniä ja parempi valoisuus")
-        elif floor == 1:
-            cons.append("Maantaso / 1. kerros: vähemmän yksityisyyttä ja pihan äänet kuuluvat helpommin")
+    if floor and total_floors and floor == total_floors and total_floors >= 2:
+        if has_elevator is True:
+            pros.append(f"Ylin kerros ({floor}/{total_floors}) hissitalossa: ei yläkerran askelääniä, valoisa ja esteetön kulku")
+        else:
+            pros.append(f"Ylin kerros ({floor}/{total_floors}): rauhaa ja valoisuutta ilman yläkerran naapuriääniä")
     elif floor == 1:
-        cons.append("1. kerros: mahdollinen katutason häiriö")
+        cons.append("1. kerros / maantaso: pihan kulkuäänet kuuluvat herkemmin ja vähemmän näkösuojaa")
 
     if has_elevator is True:
-        pros.append("Talossa on hissi: vaivaton kulku ja esteettömyys")
+        if floor and floor >= 2 and (not total_floors or floor != total_floors):
+            pros.append(f"Talossa on hissi: vaivaton kulku {floor}. kerrokseen")
+        elif not floor:
+            pros.append("Talossa on hissi: vaivaton ja esteetön kulku")
     elif has_elevator is False:
         if floor and floor >= 3:
-            cons.append(f"Korkea kerros ({floor}. krs) ilman hissiä: portaiden nousu arjessa ja muutoissa raskasta")
-        else:
-            cons.append("Taloyhtiössä ei ole hissiä")
+            cons.append(f"Korkea kerros ({floor}. krs) ilman hissiä: portaiden nousu arjessa ja tavaroita kantaessa raskasta")
 
+    # 3. Water fee: water_included is a PRO; separate water fee is standard in Finland so NOT a con
     if specs.get("water_included"):
-        pros.append("Vesimaksu sisältyy vuokraan (säästää ~20–25 €/hlö kuukausikuluissa)")
-    elif specs.get("water_fee"):
-        cons.append(f"Erillinen vesimaksu ({specs['water_fee']}) lisätään kuukausikustannuksiin")
+        pros.append("Vesimaksu sisältyy vuokraan (säästää n. 20–25 €/hlö kuukausikuluissa)")
 
+    # 4. Pets policy
     if specs.get("pets_allowed") is True:
         pros.append("Lemmikit sallittu vuokranantajan puolesta")
+    elif specs.get("pets_allowed") == "Sopimuksen mukaan":
+        pros.append("Lemmikit neuvoteltavissa (sopimuksen mukaan)")
     elif specs.get("pets_allowed") is False:
         cons.append("Lemmikkikielto asunnossa")
 
+    # 5. Balcony / Terrace
     balcony_type = specs.get("balcony_type")
     if balcony_type == "Lasitettu parveke":
         pros.append("Lasitettu parveke: toimii viihtyisänä lisähuoneena keväästä pitkälle syksyyn")
+    elif balcony_type == "Oma terassi / piha":
+        pros.append("Oma terassi / asuntopiha ulkoilmasta nauttimiseen")
     elif specs.get("has_balcony"):
-        pros.append(f"{balcony_type or 'Oma parveke'} tuo lisää avaruutta ja tuuletusmahdollisuuden")
+        pros.append(f"{balcony_type or 'Oma parveke'} tuo avaruutta ja tuuletusmahdollisuuden")
     elif specs.get("has_balcony") is False:
-        cons.append("Ei omaa parveketta")
+        cons.append("Ei omaa parveketta tai terassia")
 
+    # 6. Sauna
     sauna_type = specs.get("sauna_type")
     if specs.get("has_sauna"):
-        pros.append("Oma sauna asunnossa: rentoutumista ja arjen luksusta milloin vain")
+        pros.append("Oma sauna asunnossa: rentoutumista omassa rauhassa milloin vain")
     elif sauna_type == "Taloyhtiön sauna":
         pros.append("Taloyhtiössä sauna käytettävissä saunavuorolla")
-    elif specs.get("has_sauna") is False and sauna_type == "Ei saunaa":
-        cons.append("Asunnossa ei omaa saunaa")
 
+    # 7. Listing specifics: condition, year built, dishwasher, internet, deposit, storage
+    cond = specs.get("condition")
+    if cond:
+        if any(w in cond.lower() for w in ("erinomainen", "uusi", "uutta vastaava", "remontoitu", "vastaremontoitu")):
+            pros.append(f"Asunnon kunto ({cond}): siisti ja huoleton muuttaa")
+        elif "tyydyttävä" in cond.lower():
+            cons.append("Asunnon kunto: tyydyttävä (saattaa kaivata pintojen ehostusta)")
+
+    yb = specs.get("year_built")
+    if yb and yb >= 2018:
+        pros.append(f"Moderni taloyhtiö (valmistunut {yb}): ei suuria remontteja ja matalat energiakulut")
+
+    if specs.get("has_dishwasher") is True:
+        pros.append("Astianpesukone valmiina arjen helpottamiseksi")
+    elif specs.get("has_dishwasher") is False:
+        cons.append("Ei astianpesukonetta")
+
+    if specs.get("has_walk_in_closet") is True:
+        pros.append("Erillinen vaatehuone: runsaasti säilytystilaa vaatteille")
+    elif specs.get("has_storage") is True:
+        pros.append("Oma irtaimistovarasto (kellari- tai vinttikomero)")
+
+    if specs.get("has_washing_machine_hookup") is True:
+        pros.append("Pesukoneliitäntä kylpyhuoneessa")
+    if specs.get("has_laundry_room") is True:
+        pros.append("Taloyhtiössä pesutupa ja kuivaushuone")
+
+    if specs.get("internet_included") is True:
+        pros.append("Taloyhtiölaajakaista sisältyy vuokraan")
+
+    if specs.get("low_deposit") is True:
+        pros.append("Pieni vuokravakuus (0–1 kk vuokra)")
+
+    if specs.get("free_immediately") is True:
+        pros.append("Heti vapaa: joustava sisäänmuutto")
+
+    # 8. District intelligence
     normalized_area = (asuinalue or "").strip()
     profile = None
     for dist_key, dist_data in HELSINKI_DISTRICT_PROFILES.items():
@@ -531,8 +902,10 @@ def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str
             pros.append(f"{normalized_area}: {p}")
         for c in profile.get("cons", [])[:1]:
             cons.append(f"{normalized_area}: {c}")
-    elif normalized_area:
-        pros.append(f"{normalized_area}: Viihtyisä ja vakiintunut helsinkiläinen asuinalue")
+        specs["district_vibe"] = profile.get("vibe", f"{normalized_area}, Helsinki")
+    else:
+        # NO fake generic pros! Clear, honest area label
+        specs["district_vibe"] = f"{normalized_area}, Helsinki" if normalized_area else "Helsinki"
 
     specs["pros"] = pros
     specs["cons"] = cons
@@ -731,16 +1104,34 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
         item["lat"] = lat
         item["lon"] = lon
 
-        # Phase 3: Ensure structured dossier is present even on older records
-        if not item.get("specs"):
+        # Phase 3: Ensure structured dossier is present, clean, and auto-healed
+        existing_specs = item.get("specs")
+        needs_dossier_regen = False
+        if not existing_specs:
+            needs_dossier_regen = True
+        else:
+            floor_val = existing_specs.get("floor")
+            if floor_val is not None and (not isinstance(floor_val, int) or floor_val > 50 or floor_val < 1):
+                needs_dossier_regen = True
+            elif any("Viihtyisä ja vakiintunut" in p for p in existing_specs.get("pros", [])):
+                needs_dossier_regen = True
+            elif any("vesimaksu" in c.lower() for c in existing_specs.get("cons", [])):
+                needs_dossier_regen = True
+
+        if needs_dossier_regen:
             item["specs"] = generate_dossier(
                 price=price,
                 size_m2=size,
                 asuinalue=area,
                 raw_text=f"{item.get('title', '')} {item.get('notes', '')}",
+                extracted_specs=existing_specs if existing_specs else None,
                 lat=lat,
                 lon=lon
             )
+            try:
+                sb.table("apartments").update({"specs": item["specs"]}).eq("id", apt_id).execute()
+            except Exception:
+                pass
         else:
             if "lat" not in item["specs"]:
                 item["specs"]["lat"] = lat

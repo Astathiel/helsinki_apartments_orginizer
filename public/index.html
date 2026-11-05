@@ -1371,16 +1371,33 @@ function toggleDossier(aptId) {
 
 function buildDossierHtml(apt) {
     const specs = apt.specs || {};
-    const pros = specs.pros || [];
-    const cons = specs.cons || [];
+    // Clean any legacy placeholder pros or false-con water fees
+    const pros = (specs.pros || []).filter(p => !p.includes("Viihtyisä ja vakiintunut helsinkiläinen asuinalue"));
+    const cons = (specs.cons || []).filter(c => !c.toLowerCase().includes("vesimaksu"));
     const isOpen = openedDossiers.has(apt.id);
 
-    const floorBadge = specs.floor_str ? `🏢 Kerros: ${escapeHtml(specs.floor_str)}` : '🏢 Kerrostieto -';
+    let floorBadge = '🏢 Kerrostieto -';
+    if (specs.floor_str) {
+        if (specs.floor && (specs.floor > 50 || specs.floor < 1)) {
+            floorBadge = '🏢 Kerrostieto -';
+        } else if (/^\d{3,}/.test(specs.floor_str)) {
+            floorBadge = '🏢 Kerrostieto -';
+        } else {
+            floorBadge = `🏢 Kerros: ${escapeHtml(specs.floor_str)}`;
+        }
+    }
     const elevatorBadge = specs.has_elevator === true ? '🛗 Hissi' : specs.has_elevator === false ? 'Ei hissiä' : '🛗 Hissi -';
     const waterBadge = specs.water_included ? '💧 Vesi sisältyy' : (specs.water_fee ? `💧 ${escapeHtml(specs.water_fee)}` : '💧 Vesi -');
     const petsBadge = specs.pets_allowed === true ? '🐾 Lemmikit OK' : specs.pets_allowed === false ? '🚫 Ei lemmikkejä' : (specs.pets_allowed ? `🐾 ${escapeHtml(specs.pets_allowed)}` : '🐾 Lemmikit -');
     const balconyBadge = specs.balcony_type ? `🌅 ${escapeHtml(specs.balcony_type)}` : (specs.has_balcony ? '🌅 Parveke' : 'Ei parveketta');
     const saunaBadge = specs.sauna_type ? `🧖 ${escapeHtml(specs.sauna_type)}` : (specs.has_sauna ? '🧖 Oma sauna' : 'Ei saunaa');
+
+    const yearBadge = specs.year_built ? `<span class="spec-pill">🏗️ ${escapeHtml(String(specs.year_built))}</span>` : '';
+    const condBadge = specs.condition ? `<span class="spec-pill">✨ ${escapeHtml(specs.condition)}</span>` : '';
+    const dishBadge = specs.has_dishwasher === true ? '<span class="spec-pill">🍽️ Astianpesukone</span>' : '';
+    const washerBadge = specs.has_washing_machine_hookup === true ? '<span class="spec-pill">🧺 Pesukoneliitäntä</span>' : '';
+    const closetBadge = specs.has_walk_in_closet === true ? '<span class="spec-pill">👗 Vaatehuone</span>' : '';
+    const netBadge = specs.internet_included === true ? '<span class="spec-pill">🌐 Laajakaista</span>' : '';
 
     const vibeText = specs.district_vibe ? `📍 ${escapeHtml(specs.district_vibe)}` : '';
 
@@ -1406,6 +1423,12 @@ function buildDossierHtml(apt) {
                     <span class="spec-pill">${petsBadge}</span>
                     <span class="spec-pill">${balconyBadge}</span>
                     <span class="spec-pill">${saunaBadge}</span>
+                    ${yearBadge}
+                    ${condBadge}
+                    ${dishBadge}
+                    ${washerBadge}
+                    ${closetBadge}
+                    ${netBadge}
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 8px;">
