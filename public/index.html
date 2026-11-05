@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -881,6 +881,7 @@
     <div id="entry-forms-grid" class="grid">
         <div class="card">
             <h3 id="form-title">Manual Entry / Edit</h3>
+            <input type="hidden" id="m-id">
             <input id="m-url" placeholder="Apartment Link (https://...)">
             <input id="m-title" placeholder="Address / Title (e.g. Kiillekuja 3)">
             <input id="m-area" placeholder="asuinalue (e.g. Kruunuvuori, Pohjois-Pasila)">
@@ -893,7 +894,10 @@
                 <option value="Not Interested">Status: Not Interested</option>
             </select>
             <textarea id="m-notes" placeholder="Notes (e.g. 4/6 krs, oma sauna, lasitettu parveke, vesi sisältyy)"></textarea>
-            <button onclick="submitManual()">Save Apartment</button>
+            <div style="display: flex; gap: 8px;">
+                <button style="flex: 1;" onclick="submitManual()" id="m-save-btn">Save Apartment</button>
+                <button type="button" id="m-cancel-btn" style="display: none; background: #64748b;" onclick="cancelEdit()">Cancel Edit</button>
+            </div>
             <p id="m-status-msg" class="msg" style="color: #94a3b8;"></p>
         </div>
         <div class="card">
@@ -1637,6 +1641,7 @@ function editApt(encodedJson) {
         return;
     }
     const apt = JSON.parse(decodeURIComponent(encodedJson));
+    document.getElementById("m-id").value = apt.id;
     document.getElementById("m-url").value = apt.url;
     document.getElementById("m-title").value = apt.title;
     document.getElementById("m-area").value = apt.asuinalue;
@@ -1645,7 +1650,22 @@ function editApt(encodedJson) {
     document.getElementById("m-status").value = apt.status || "Interested";
     document.getElementById("m-notes").value = apt.notes || "";
     document.getElementById("form-title").textContent = `Editing: ${apt.title}`;
+    document.getElementById("m-save-btn").textContent = "Update Listing";
+    const cancelBtn = document.getElementById("m-cancel-btn");
+    if (cancelBtn) cancelBtn.style.display = "block";
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+    ["m-id", "m-url", "m-title", "m-area", "m-price", "m-size", "m-notes"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+    document.getElementById("m-status").value = "Interested";
+    document.getElementById("form-title").textContent = "Manual Entry / Edit";
+    document.getElementById("m-save-btn").textContent = "Save Apartment";
+    const cancelBtn = document.getElementById("m-cancel-btn");
+    if (cancelBtn) cancelBtn.style.display = "none";
 }
 
 async function submitManual() {
@@ -1654,6 +1674,7 @@ async function submitManual() {
         return;
     }
     const status = document.getElementById("m-status-msg");
+    const idVal = document.getElementById("m-id")?.value;
     const url = document.getElementById("m-url").value.trim();
     const title = document.getElementById("m-title").value.trim();
     const asuinalue = document.getElementById("m-area").value.trim();
@@ -1667,10 +1688,14 @@ async function submitManual() {
         return;
     }
     const headers = await apiHeaders();
+    const payload = { url, title, asuinalue, price, size_m2, status: aptStatus, notes };
+    if (idVal) {
+        payload.id = parseInt(idVal);
+    }
     const res = await fetch("/api/apartments/manual", {
         method: "POST",
         headers,
-        body: JSON.stringify({ url, title, asuinalue, price, size_m2, status: aptStatus, notes })
+        body: JSON.stringify(payload)
     });
     const data = await res.json();
     if (!res.ok) {
@@ -1679,10 +1704,8 @@ async function submitManual() {
         return;
     }
     status.style.color = "#4ade80";
-    status.textContent = "Saved & geocoded to map!";
-    ["m-url", "m-title", "m-area", "m-price", "m-size", "m-notes"].forEach(id => document.getElementById(id).value = "");
-    document.getElementById("m-status").value = "Interested";
-    document.getElementById("form-title").textContent = "Manual Entry / Edit";
+    status.textContent = idVal ? "Updated listing!" : "Saved & geocoded to map!";
+    cancelEdit();
     loadApartments();
 }
 

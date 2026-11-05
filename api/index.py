@@ -520,6 +520,7 @@ def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str
 # =====================================================================
 
 class ManualApartmentInput(BaseModel):
+    id: int | None = None
     url: str = Field(..., min_length=8)
     title: str = Field(..., min_length=1)
     asuinalue: str = Field(..., min_length=1)
@@ -529,6 +530,8 @@ class ManualApartmentInput(BaseModel):
     status: str = "Interested"
     lat: float | None = None
     lon: float | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
     @field_validator("url")
     @classmethod
@@ -693,13 +696,7 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
                     "longitude": lon
                 }).eq("id", apt_id).execute()
             except Exception:
-                try:
-                    sb.table("apartments").update({
-                        "lat": lat,
-                        "lon": lon
-                    }).eq("id", apt_id).execute()
-                except Exception:
-                    pass
+                pass
 
         item["latitude"] = lat
         item["longitude"] = lon
@@ -735,9 +732,9 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
     require_editor(user)
     sb = get_supabase()
 
-    # Phase 4: Geocode via HSL Digitransit Pelias
-    lat = payload.lat
-    lon = payload.lon
+    # Phase 4: Geocode
+    lat = payload.latitude if payload.latitude is not None else payload.lat
+    lon = payload.longitude if payload.longitude is not None else payload.lon
     if lat is None or lon is None:
         lat, lon = geocode_address_hsl(payload.title, payload.asuinalue)
 
@@ -760,25 +757,19 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         "notes": payload.notes.strip(),
         "status": payload.status.strip(),
         "added_by": user["display_name"],
-        "lat": lat,
-        "lon": lon,
         "latitude": lat,
         "longitude": lon,
         "specs": dossier
     }
 
     try:
-        res = sb.table("apartments").upsert(data, on_conflict="url").execute()
+        if payload.id:
+            data["id"] = payload.id
+            res = sb.table("apartments").upsert(data, on_conflict="id").execute()
+        else:
+            res = sb.table("apartments").upsert(data, on_conflict="url").execute()
     except Exception as exc:
-        err_msg = str(exc).lower()
-        fallback_data = dict(data)
-        if "lat" in err_msg and "latitude" not in err_msg:
-            fallback_data.pop("lat", None)
-        if "lon" in err_msg and "longitude" not in err_msg:
-            fallback_data.pop("lon", None)
-        if "specs" in err_msg:
-            fallback_data.pop("specs", None)
-        res = sb.table("apartments").upsert(fallback_data, on_conflict="url").execute()
+        raise HTTPException(status_code=400, detail=str(exc))
 
     return {"status": "saved", "data": res.data}
 
@@ -792,20 +783,20 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
         extracted["added_by"] = user["display_name"]
         sb = get_supabase()
         
-        extracted["latitude"] = extracted.get("lat")
-        extracted["longitude"] = extracted.get("lon")
-        try:
-            res = sb.table("apartments").upsert(extracted, on_conflict="url").execute()
-        except Exception as exc:
-            err_msg = str(exc).lower()
-            fallback_data = dict(extracted)
-            if "lat" in err_msg and "latitude" not in err_msg:
-                fallback_data.pop("lat", None)
-            if "lon" in err_msg and "longitude" not in err_msg:
-                fallback_data.pop("lon", None)
-            if "specs" in err_msg:
-                fallback_data.pop("specs", None)
-            res = sb.table("apartments").upsert(fallback_data, on_conflict="url").execute()
+        db_payload = {
+            "url": extracted["url"],
+            "title": extracted["title"],
+            "asuinalue": extracted["asuinalue"],
+            "price": extracted["price"],
+            "size_m2": extracted["size_m2"],
+            "notes": extracted.get("notes", ""),
+            "status": extracted.get("status", "Interested"),
+            "added_by": extracted["added_by"],
+            "latitude": extracted.get("latitude") if extracted.get("latitude") is not None else extracted.get("lat"),
+            "longitude": extracted.get("longitude") if extracted.get("longitude") is not None else extracted.get("lon"),
+            "specs": extracted.get("specs", {})
+        }
+        res = sb.table("apartments").upsert(db_payload, on_conflict="url").execute()
 
         return {"status": "saved", "data": res.data, "asuinalue": extracted["asuinalue"]}
     except Exception as exc:
