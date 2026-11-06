@@ -21,6 +21,8 @@ __pycache__/
 htmlcov/
 dist/
 build/
+test-results/
+.jules/
 
 # Logs
 Log.txt
