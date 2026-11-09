@@ -1742,6 +1742,7 @@ let activeDistrictFilter = "ALL";
 
 // Map Basemap & Layer State
 let leafletMap = null;
+let clusterGroup = null;
 let markerClusterGroup = null;
 let currentTileLayer = null;
 let isMapVisible = false;
@@ -2312,19 +2313,27 @@ function escapeHtml(str) {
 }
 
 // -------------------------------------------------------------
-// Interactive Map & CARTO Basemap with Dynamic Theme
+// Interactive Leaflet Map (Free CARTO & OpenStreetMap, No API Key Required)
 // -------------------------------------------------------------
 function toggleMapView() {
-    const section = document.getElementById("map-section");
-    const btn = document.getElementById("map-toggle-btn");
-    isMapVisible = !isMapVisible;
+    const mapSection = document.getElementById("map-section");
+    const btn = document.getElementById("map-toggle-btn") || document.getElementById("btn-toggle-map");
+
     if (isMapVisible) {
-        section.classList.add("visible");
-        btn.classList.add("active");
-        initOrUpdateMap();
+        if (mapSection) mapSection.classList.remove("visible");
+        if (btn) {
+            btn.classList.remove("active");
+            btn.innerHTML = `🗺️ <span>Map View</span>`;
+        }
+        isMapVisible = false;
     } else {
-        section.classList.remove("visible");
-        btn.classList.remove("active");
+        if (mapSection) mapSection.classList.add("visible");
+        if (btn) {
+            btn.classList.add("active");
+            btn.innerHTML = `🗺️ <span>Hide Map</span>`;
+        }
+        isMapVisible = true;
+        initOrUpdateMap();
     }
 }
 
@@ -2341,14 +2350,19 @@ function initOrUpdateMap() {
             zoomControl: true
         });
 
-        markerClusterGroup = L.markerClusterGroup({
+        // Initialize free basemap tiles with automatic dark/light theme
+        updateMapTileTheme();
+
+        // MarkerCluster Group
+        clusterGroup = L.markerClusterGroup({
+            maxClusterRadius: 40,
+            disableClusteringAtZoom: 15,
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: false,
-            zoomToBoundsOnClick: true,
-            maxClusterRadius: 45
+            zoomToBoundsOnClick: true
         });
-        leafletMap.addLayer(markerClusterGroup);
-        updateMapTileTheme();
+        markerClusterGroup = clusterGroup;
+        leafletMap.addLayer(clusterGroup);
     }
 
     setTimeout(() => {
@@ -2365,6 +2379,7 @@ function updateMapTileTheme() {
     if (currentTileLayer) {
         leafletMap.removeLayer(currentTileLayer);
     }
+    // High-performance free basemaps with no API key requirement
     const tileUrl = isDark 
         ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
         : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
@@ -2377,11 +2392,15 @@ function updateMapTileTheme() {
 }
 
 function updateMapPins() {
-    if (!markerClusterGroup || typeof L === 'undefined') return;
-    markerClusterGroup.clearLayers();
+    if (!clusterGroup || typeof L === 'undefined') return;
+    clusterGroup.clearLayers();
+
+    const apts = allApartmentsList.length > 0 ? allApartmentsList : Object.values(apartmentsCache);
+    if (apts.length === 0) return;
+
     const bounds = [];
 
-    allApartmentsList.forEach(apt => {
+    apts.forEach(apt => {
         const rawLat = apt.latitude != null ? apt.latitude : ((apt.specs && apt.specs.lat != null) ? apt.specs.lat : apt.lat);
         const rawLon = apt.longitude != null ? apt.longitude : ((apt.specs && apt.specs.lon != null) ? apt.specs.lon : apt.lon);
         const lat = parseFloat(rawLat);
@@ -2389,69 +2408,87 @@ function updateMapPins() {
         if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) return;
 
         bounds.push([lat, lon]);
+
+        // Pin styling based on status and mutual match state
         const isMatch = apt.is_mutual_match === true;
         let pinClass = "pin-interested";
-        let pinIconText = "🏠";
+        let iconContent = "🏠";
 
         if (isMatch) {
             pinClass = "pin-match";
-            pinIconText = "💚";
-        } else if (apt.status === "Applied") {
+            iconContent = "💚";
+        } else if (apt.status?.startsWith("Applied")) {
             pinClass = "pin-applied";
-            pinIconText = "📝";
-        } else if (apt.status === "Viewing booked") {
+            iconContent = "✓";
+        } else if (apt.status?.startsWith("Viewing")) {
             pinClass = "pin-viewing";
-            pinIconText = "👀";
-        } else if (apt.status === "Not interested") {
+            iconContent = "👁";
+        } else if (apt.status?.startsWith("Not")) {
             pinClass = "pin-not";
-            pinIconText = "✕";
+            iconContent = "✕";
         }
 
-        const icon = L.divIcon({
+        const customIcon = L.divIcon({
             className: `custom-pin ${pinClass}`,
-            html: `<span>${pinIconText}</span>`,
-            iconSize: isMatch ? [36, 36] : [30, 30],
-            iconAnchor: isMatch ? [18, 18] : [15, 15]
+            html: `<span>${iconContent}</span>`,
+            iconSize: isMatch ? [34, 34] : [28, 28],
+            iconAnchor: isMatch ? [17, 17] : [14, 14],
+            popupAnchor: [0, -14]
         });
 
-        const marker = L.marker([lat, lon], { icon });
-        const popupContent = `
+        const marker = L.marker([lat, lon], { icon: customIcon });
+
+        const leoVote = formatVoteEmoji(apt.votes?.["Leo"]);
+        const ellaVote = formatVoteEmoji(apt.votes?.["Ella"]);
+
+        const popupHtml = `
             <div class="popup-card">
-                ${isMatch ? '<div class="glass-badge mutual-glass-badge" style="font-size:0.75rem; padding:3px 8px;">💚 Mutual Match</div>' : ''}
-                <h4 class="popup-title">${escapeHtml(apt.title)}</h4>
+                ${isMatch ? '<div class="glass-badge mutual-glass-badge" style="font-size:0.75rem; padding:3px 8px; margin-bottom:4px;">💚 Mutual Match</div>' : ''}
+                <div class="popup-title">${escapeHtml(apt.title)}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">📍 ${escapeHtml(apt.asuinalue)}</div>
+                
                 <div class="popup-specs">
                     <span>${apt.price} €/kk</span> • <span>${apt.size_m2} m²</span> • <span>${apt.eur_per_m2} €/m²</span>
                 </div>
-                <button class="popup-jump-btn" onclick="jumpToApartment(${apt.id})">
-                    Jump to Listing ↓
+
+                <div style="font-size: 0.78rem; margin: 6px 0; color: var(--text-secondary);">
+                    <div><strong>Status:</strong> ${escapeHtml(apt.status)}</div>
+                    <div><strong>Votes:</strong> Leo (${leoVote}) • Ella (${ellaVote})</div>
+                </div>
+
+                <button class="popup-jump-btn" onclick="jumpToApartmentCard(${apt.id})">
+                    Jump to Listing Card ↓
                 </button>
             </div>
         `;
-        marker.bindPopup(popupContent);
-        markerClusterGroup.addLayer(marker);
+
+        marker.bindPopup(popupHtml);
+        clusterGroup.addLayer(marker);
     });
 
     if (bounds.length > 0 && leafletMap) {
         if (bounds.length === 1) {
             leafletMap.setView(bounds[0], 14);
         } else {
-            leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+            leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
         }
     }
 }
 
-function jumpToApartment(id) {
-    const card = document.getElementById(`apt-card-${id}`);
+function jumpToApartmentCard(aptId) {
+    const card = document.getElementById(`apt-card-${aptId}`);
     if (card) {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.style.borderColor = '#10b981';
-        card.style.boxShadow = '0 0 30px rgba(16, 185, 129, 0.6)';
+        card.style.borderColor = 'var(--brand-primary)';
+        card.style.boxShadow = '0 0 30px rgba(99, 102, 241, 0.6)';
         setTimeout(() => {
             card.style.borderColor = '';
             card.style.boxShadow = '';
         }, 2200);
     }
 }
+
+const jumpToApartment = jumpToApartmentCard;
 
 // -------------------------------------------------------------
 // Voting Logic
