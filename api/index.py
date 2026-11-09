@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import random
 from urllib.parse import urlsplit, urlunsplit, quote
 import httpx
@@ -929,6 +930,7 @@ class ManualApartmentInput(BaseModel):
     size_m2: float = Field(..., gt=0)
     notes: str = ""
     status: str = "Interested"
+    image_url: str | None = None
     lat: float | None = None
     lon: float | None = None
     latitude: float | None = None
@@ -963,10 +965,147 @@ class ApartmentVoteInput(BaseModel):
 class VuokraoviScraper:
     def __init__(self):
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "fi,en-US;q=0.9,en;q=0.8",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "fi-FI,fi;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Upgrade-Insecure-Requests": "1"
         }
+
+    def extract_official_image(self, soup: BeautifulSoup, html_text: str) -> str:
+        # 1. Primary: Open Graph and Twitter meta tags (standard for Vuokraovi / Etuovi)
+        for attr in [
+            {"property": "og:image"},
+            {"property": "og:image:url"},
+            {"property": "og:image:secure_url"},
+            {"name": "og:image"},
+            {"name": "twitter:image"},
+            {"name": "twitter:image:src"},
+            {"property": "twitter:image"}
+        ]:
+            tag = soup.find("meta", attrs=attr)
+            if tag and tag.get("content"):
+                cand = tag["content"].strip()
+                if cand.startswith("//"):
+                    cand = "https:" + cand
+                if cand.startswith("http") and not any(k in cand.lower() for k in ("logo", "icon", "blank", "tracking", "pixel", "avatar", "default")):
+                    return cand
+
+        # 2. Schema.org JSON-LD structured data (<script type="application/ld+json">)
+        for script in soup.find_all("script", type="application/ld+json"):
+            try:
+                content = script.string or script.text or ""
+                if not content.strip():
+                    continue
+                data = json.loads(content)
+                items = data if isinstance(data, list) else [data]
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    imgs = item.get("image") or item.get("photo")
+                    if isinstance(imgs, str) and imgs.startswith("http"):
+                        return imgs
+                    elif isinstance(imgs, list) and imgs:
+                        first = imgs[0]
+                        if isinstance(first, str) and first.startswith("http"):
+                            return first
+                        elif isinstance(first, dict) and first.get("url"):
+                            return first["url"]
+                    elif isinstance(imgs, dict) and imgs.get("url"):
+                        return imgs["url"]
+            except Exception:
+                continue
+
+        # 3. Next.js / React dehydrated __NEXT_DATA__
+        next_script = soup.find("script", id="__NEXT_DATA__")
+        if next_script and next_script.string:
+            try:
+                data = json.loads(next_script.string)
+                def find_img(obj):
+                    if isinstance(obj, dict):
+                        for k in ("images", "pictures", "photos", "imageUrls", "gallery"):
+                            val = obj.get(k)
+                            if isinstance(val, list) and val:
+                                for item in val:
+                                    if isinstance(item, str) and item.startswith("http") and not any(x in item.lower() for x in ("logo", "icon", "avatar")):
+                                        return item
+                                    elif isinstance(item, dict):
+                                        for subk in ("url", "src", "large", "original", "href", "full"):
+                                            if item.get(subk) and str(item[subk]).startswith("http"):
+                                                return item[subk]
+                        for v in obj.values():
+                            res = find_img(v)
+                            if res:
+                                return res
+                    elif isinstance(obj, list):
+                        for elem in obj:
+                            res = find_img(elem)
+                            if res:
+                                return res
+                    return None
+
+                cand = find_img(data.get("props", {}))
+                if cand:
+                    return cand
+            except Exception:
+                pass
+
+        # 4. Link elements
+        for rel in ("image_src", "preload"):
+            for link in soup.find_all("link", rel=rel):
+                href = link.get("href", "").strip()
+                if href.startswith("http") and any(k in href.lower() for k in ("vuokraovi", "etuovi", "cloudfront", "images")) and not any(k in href.lower() for k in ("logo", "icon", "avatar")):
+                    return href
+
+        # 5. DOM Image / Picture elements
+        for img in soup.find_all("img"):
+            src = img.get("src") or img.get("data-src") or img.get("data-lazy") or img.get("data-original") or ""
+            srcset = img.get("srcset") or img.get("data-srcset") or ""
+            candidates = []
+            if srcset:
+                parts = [p.strip().split(" ")[0] for p in srcset.split(",") if p.strip()]
+                if parts:
+                    candidates.append(parts[-1])
+            if src:
+                candidates.append(src)
+
+            for cand in candidates:
+                if cand.startswith("//"):
+                    cand = "https:" + cand
+                if cand.startswith("http"):
+                    cand_lower = cand.lower()
+                    if any(k in cand_lower for k in ("vuokraovi", "etuovi", "cloudfront", "almamedia", "image-carousel", "gallery")):
+                        if not any(k in cand_lower for k in ("logo", "icon", "blank", "tracking", "pixel", "avatar")):
+                            return cand
+
+        # 6. Fallback regex match across raw HTML for Alma/Vuokraovi/Cloudfront image CDN
+        cdn_matches = re.findall(
+            r'https?://(?:images\.vuokraovi\.com|cdn\.etuovi\.com|images\.etuovi\.com|[a-zA-Z0-9_-]+\.cloudfront\.net)/[^\s"\'<>]+\.(?:jpg|jpeg|png|webp)',
+            html_text,
+            re.IGNORECASE
+        )
+        for cand in cdn_matches:
+            cand_lower = cand.lower()
+            if not any(k in cand_lower for k in ("logo", "icon", "blank", "tracking", "pixel", "avatar")):
+                return cand
+
+        return ""
+
+    def scrape_image_only(self, url: str) -> str:
+        try:
+            resp = httpx.get(url, headers=self.headers, follow_redirects=True, timeout=5.0)
+            if resp.status_code == 200:
+                sp = BeautifulSoup(resp.text, "html.parser")
+                return self.extract_official_image(sp, resp.text)
+        except Exception:
+            pass
+        return ""
 
     def extract(self, url: str, fallback_area: str = "") -> dict:
         try:
@@ -999,6 +1138,9 @@ class VuokraoviScraper:
         if price_val <= 0 or size_val <= 0:
             raise ValueError("Could not extract price or size. Use manual entry (Option A).")
 
+        # Extract official main listing image URL
+        image_url = self.extract_official_image(soup, response.text)
+
         # Phase 4: Geocode via HSL Digitransit Pelias API
         lat, lon = geocode_address_hsl(title, asuinalue)
 
@@ -1013,6 +1155,8 @@ class VuokraoviScraper:
             lat=lat,
             lon=lon
         )
+        if image_url:
+            dossier["image_url"] = image_url
 
         return {
             "url": url,
@@ -1022,6 +1166,7 @@ class VuokraoviScraper:
             "size_m2": size_val,
             "notes": "",
             "status": "Interested",
+            "image_url": image_url,
             "lat": lat,
             "lon": lon,
             "latitude": lat,
@@ -1137,6 +1282,23 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
                 item["specs"]["lat"] = lat
                 item["specs"]["lon"] = lon
 
+        # Ensure image_url is available from Vuokraovi official listing
+        img = item.get("image_url") or (item.get("specs") or {}).get("image_url") or ""
+        if not img and "vuokraovi.com" in (item.get("url") or ""):
+            try:
+                scraped_img = scraper.scrape_image_only(item["url"])
+                if scraped_img:
+                    img = scraped_img
+                    if item.get("specs"):
+                        item["specs"]["image_url"] = scraped_img
+                    try:
+                        sb.table("apartments").update({"image_url": scraped_img}).eq("id", apt_id).execute()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        item["image_url"] = img
+
         grouped.setdefault(area, []).append(item)
 
     sort_key = sort_by if sort_by in ("price", "size_m2", "eur_per_m2") else "price"
@@ -1166,6 +1328,9 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         lat=lat,
         lon=lon
     )
+    img = (payload.image_url or "").strip()
+    if img:
+        dossier["image_url"] = img
 
     data = {
         "url": payload.url,
@@ -1178,6 +1343,7 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         "added_by": user["display_name"],
         "latitude": lat,
         "longitude": lon,
+        "image_url": img or None,
         "specs": dossier
     }
 
@@ -1188,7 +1354,15 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         else:
             res = sb.table("apartments").upsert(data, on_conflict="url").execute()
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        if "image_url" in str(exc).lower():
+            data.pop("image_url", None)
+            if payload.id:
+                data["id"] = payload.id
+                res = sb.table("apartments").upsert(data, on_conflict="id").execute()
+            else:
+                res = sb.table("apartments").upsert(data, on_conflict="url").execute()
+        else:
+            raise HTTPException(status_code=400, detail=str(exc))
 
     return {"status": "saved", "data": res.data}
 
@@ -1202,6 +1376,7 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
         extracted["added_by"] = user["display_name"]
         sb = get_supabase()
         
+        img = extracted.get("image_url", "")
         db_payload = {
             "url": extracted["url"],
             "title": extracted["title"],
@@ -1213,11 +1388,47 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
             "added_by": extracted["added_by"],
             "latitude": extracted.get("latitude") if extracted.get("latitude") is not None else extracted.get("lat"),
             "longitude": extracted.get("longitude") if extracted.get("longitude") is not None else extracted.get("lon"),
+            "image_url": img or None,
             "specs": extracted.get("specs", {})
         }
-        res = sb.table("apartments").upsert(db_payload, on_conflict="url").execute()
+        try:
+            res = sb.table("apartments").upsert(db_payload, on_conflict="url").execute()
+        except Exception as exc:
+            if "image_url" in str(exc).lower():
+                db_payload.pop("image_url", None)
+                res = sb.table("apartments").upsert(db_payload, on_conflict="url").execute()
+            else:
+                raise exc
 
         return {"status": "saved", "data": res.data, "asuinalue": extracted["asuinalue"]}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+class ApartmentImageInput(BaseModel):
+    apartment_id: int
+    image_url: str = Field(..., max_length=1500)
+
+@app.post("/apartments/image")
+@app.post("/api/apartments/image")
+def update_apartment_image(payload: ApartmentImageInput, authorization: str = Header(None)):
+    user = get_current_user(authorization)
+    require_editor(user)
+    sb = get_supabase()
+    clean_img = payload.image_url.strip()
+
+    try:
+        apt_res = sb.table("apartments").select("specs").eq("id", payload.apartment_id).execute()
+        specs = (apt_res.data[0].get("specs") if apt_res.data else {}) or {}
+        specs["image_url"] = clean_img
+        update_data = {"specs": specs, "image_url": clean_img}
+        try:
+            res = sb.table("apartments").update(update_data).eq("id", payload.apartment_id).execute()
+        except Exception as exc:
+            if "image_url" in str(exc).lower():
+                res = sb.table("apartments").update({"specs": specs}).eq("id", payload.apartment_id).execute()
+            else:
+                raise exc
+        return {"status": "saved", "image_url": clean_img, "data": res.data}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

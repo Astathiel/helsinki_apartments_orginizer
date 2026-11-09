@@ -1,64 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Helsinki Apartment Tracker — Leo & Ella</title>
+    <title>Helsinki Apartment Tracker</title>
     
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Google Fonts: Quicksand -->
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
     <!-- Leaflet.js & Leaflet.markercluster via Free CDN -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 
     <style>
+        /* -------------------------------------------------------------
+           1. Dual Theme System (Framer Dark & Airbnb/Notion Light)
+        ------------------------------------------------------------- */
         :root {
-            --bg-gradient: linear-gradient(135deg, #f0fdf4 0%, #fdfbf7 100%);
-            --bg-color: #f0fdf4;
-            --text-color: #14532d;
-            --card-bg: #ffffff;
-            --card-border: #bbf7d0;
-            --input-bg: #f8fafc;
-            --input-border: #86efac;
-            --input-text: #14532d;
-            --pill-bg: #dcfce7;
-            --pill-border: #bbf7d0;
-            --btn-primary: #16a34a;
-            --btn-primary-hover: #15803d;
-            --btn-edit: #86efac;
-            --btn-edit-hover: #4ade80;
-            --btn-edit-text: #064e3b;
-            --btn-del: #fca5a5;
-            --btn-del-hover: #f87171;
-            --btn-del-text: #7f1d1d;
-            --status-interested: #3b82f6;
-            --status-applied: #10b981;
-            --status-viewing: #fbbf24;
-            --status-not: #94a3b8;
-            --notes-bg: #f0fdfa;
-            --notes-border: #14b8a6;
-            --notes-text: #0f766e;
-            --badge-spec-bg: #dcfce7;
-            --badge-spec-text: #166534;
-            --link-color: #059669;
-            --link-hover: #047857;
-            --border-color: #d1d5db;
-            --msg-color: #64748b;
-            --match-border: #10b981;
-            --match-glow: rgba(16, 185, 129, 0.35);
-            --modal-bg: #ffffff;
-            --modal-header-bg: #f8fafc;
+            /* Light Mode (Airbnb/Notion Aesthetic) */
+            --bg-base: #f8fafc;
+            --bg-grid-glow: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 60%);
+            --bg-surface: #ffffff;
+            --bg-surface-elevated: #f1f5f9;
+            --bg-surface-glass: rgba(255, 255, 255, 0.85);
+            --border-subtle: rgba(0, 0, 0, 0.08);
+            --border-focus: rgba(99, 102, 241, 0.4);
+            
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            
+            --brand-primary: #4f46e5;
+            --brand-primary-hover: #4338ca;
+            --brand-glow: rgba(79, 70, 229, 0.25);
+            
+            --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.04);
+            --shadow-hover: 0 20px 35px -5px rgba(0, 0, 0, 0.09), 0 0 0 1px rgba(99, 102, 241, 0.2);
+            --shadow-bento: 0 10px 30px -4px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05);
 
-            /* Phase 3 Dossier Colors */
+            --badge-glass-bg: rgba(255, 255, 255, 0.88);
+            --badge-glass-text: #0f172a;
+            --badge-glass-border: rgba(0, 0, 0, 0.08);
+
             --dossier-bg: #f8fafc;
             --dossier-border: #e2e8f0;
             --pro-bg: #ecfdf5;
@@ -68,164 +59,573 @@
             --con-border: #fecdd3;
             --con-text: #9f1239;
 
-            /* Phase 4 Map Colors */
-            --map-container-bg: #ffffff;
-            --map-border: #bbf7d0;
+            --match-border: #10b981;
+            --match-glow: rgba(16, 185, 129, 0.35);
+
+            --input-bg: #ffffff;
+            --input-border: #cbd5e1;
+            --input-text: #0f172a;
+
+            --modal-bg: #ffffff;
+            --modal-header-bg: #f8fafc;
         }
 
         [data-theme="dark"] {
-            --bg-gradient: linear-gradient(135deg, #022c22 0%, #064e3b 100%);
-            --bg-color: #022c22;
-            --text-color: #ecfdf5;
-            --card-bg: #064e3b;
-            --card-border: #065f46;
-            --input-bg: #022c22;
-            --input-border: #047857;
-            --input-text: #ecfdf5;
-            --pill-bg: #065f46;
-            --pill-border: #047857;
-            --btn-primary: #10b981;
-            --btn-primary-hover: #059669;
-            --btn-edit: #047857;
-            --btn-edit-hover: #065f46;
-            --btn-edit-text: #ecfdf5;
-            --btn-del: #b91c1c;
-            --btn-del-hover: #991b1b;
-            --btn-del-text: #fecaca;
-            --status-interested: #3b82f6;
-            --status-applied: #34d399;
-            --status-viewing: #fbbf24;
-            --status-not: #64748b;
-            --notes-bg: #064e3b;
-            --notes-border: #10b981;
-            --notes-text: #a7f3d0;
-            --badge-spec-bg: #047857;
-            --badge-spec-text: #d1fae5;
-            --link-color: #34d399;
-            --link-hover: #6ee7b7;
-            --border-color: #065f46;
-            --msg-color: #94a3b8;
-            --match-border: #34d399;
-            --match-glow: rgba(52, 211, 153, 0.45);
-            --modal-bg: #064e3b;
-            --modal-header-bg: #022c22;
+            /* Dark Mode (Framer / Linear Aesthetic) */
+            --bg-base: #09090b;
+            --bg-grid-glow: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), rgba(255, 255, 255, 0));
+            --bg-surface: #121622;
+            --bg-surface-elevated: #181e2e;
+            --bg-surface-glass: rgba(18, 22, 34, 0.82);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-focus: rgba(99, 102, 241, 0.5);
 
-            /* Phase 3 Dossier Colors (Dark) */
-            --dossier-bg: #022c22;
-            --dossier-border: #065f46;
-            --pro-bg: #064e3b;
-            --pro-border: #059669;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            --brand-primary: #6366f1;
+            --brand-primary-hover: #4f46e5;
+            --brand-glow: rgba(99, 102, 241, 0.4);
+
+            --shadow-card: 0 4px 24px -1px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+            --shadow-hover: 0 20px 40px -4px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(99, 102, 241, 0.4);
+            --shadow-bento: 0 12px 36px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+
+            --badge-glass-bg: rgba(15, 23, 42, 0.8);
+            --badge-glass-text: #f8fafc;
+            --badge-glass-border: rgba(255, 255, 255, 0.14);
+
+            --dossier-bg: #0d111a;
+            --dossier-border: rgba(255, 255, 255, 0.08);
+            --pro-bg: rgba(6, 78, 59, 0.35);
+            --pro-border: rgba(16, 185, 129, 0.3);
             --pro-text: #a7f3d0;
-            --con-bg: #4c0519;
-            --con-border: #881337;
+            --con-bg: rgba(76, 5, 25, 0.35);
+            --con-border: rgba(244, 63, 94, 0.3);
             --con-text: #fecdd3;
 
-            /* Phase 4 Map Colors (Dark) */
-            --map-container-bg: #064e3b;
-            --map-border: #065f46;
+            --match-border: #34d399;
+            --match-glow: rgba(52, 211, 153, 0.45);
+
+            --input-bg: #0d111a;
+            --input-border: rgba(255, 255, 255, 0.12);
+            --input-text: #f8fafc;
+
+            --modal-bg: #121622;
+            --modal-header-bg: #0d111a;
         }
 
-        body { font-family: 'Quicksand', system-ui, sans-serif; background: var(--bg-gradient); color: var(--text-color); margin: 0; padding: 20px; min-height: 100vh; padding-bottom: 120px; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-        .user-pill { display: flex; align-items: center; gap: 8px; background: var(--pill-bg); padding: 6px 14px; border-radius: 20px; border: 1px solid var(--pill-border); color: var(--text-color); }
-        .user-dot { width: 10px; height: 10px; border-radius: 50%; background: #10b981; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-        .card { background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--card-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-        h1, h2, h3 { margin-top: 0; }
-        input, select, textarea, button { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--input-text); box-sizing: border-box; font-family: inherit; font-size: 1rem; transition: all 0.2s; }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--btn-primary); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2); }
-        textarea { resize: vertical; min-height: 80px; }
-        button { background: var(--btn-primary); color: white; border: none; font-weight: 600; cursor: pointer; border-radius: 10px; transition: background 0.2s, transform 0.1s; }
-        button:hover { background: var(--btn-primary-hover); transform: translateY(-1px); }
-        button:active { transform: translateY(0); }
-        .btn-row { display: flex; gap: 8px; }
-        .btn-edit { background: var(--btn-edit); color: var(--btn-edit-text); padding: 8px 16px; margin: 0; width: auto; font-weight: 500; }
-        .btn-edit:hover { background: var(--btn-edit-hover); }
-        .btn-del { background: var(--btn-del); color: var(--btn-del-text); padding: 8px 16px; margin: 0; width: auto; font-weight: 500; }
-        .btn-del:hover { background: var(--btn-del-hover); }
-        
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--card-bg); padding: 16px; border-radius: 16px; flex-wrap: wrap; gap: 12px; border: 1px solid var(--card-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .toolbar select { width: auto; margin: 0; padding: 8px 12px; }
-        
-        /* Map Toggle Button */
-        .btn-toggle-map {
-            width: auto;
+        /* -------------------------------------------------------------
+           2. Base Global Styles & High-Craft Typography
+        ------------------------------------------------------------- */
+        * {
+            box-sizing: border-box;
+            transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background: var(--bg-base);
+            background-image: var(--bg-grid-glow);
+            background-attachment: fixed;
+            color: var(--text-primary);
             margin: 0;
-            padding: 8px 16px;
-            background: var(--pill-bg);
-            color: var(--text-color);
-            border: 1px solid var(--pill-border);
+            padding: 24px;
+            min-height: 100vh;
+            padding-bottom: 140px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        /* Number metrics use tabular numerals */
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum";
+        }
+
+        /* -------------------------------------------------------------
+           3. Top Navigation & Navbar
+        ------------------------------------------------------------- */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-bento);
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .brand-logo-icon {
+            width: 38px;
+            height: 38px;
             border-radius: 12px;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 12px var(--brand-glow);
+        }
+
+        .brand-title {
+            font-weight: 800;
+            font-size: 1.15rem;
+            letter-spacing: -0.02em;
+            margin: 0;
+            line-height: 1.1;
+        }
+
+        .brand-subtitle {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-surface-elevated);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .user-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        .theme-toggle-btn {
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            font-size: 1.15rem;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+            border-color: var(--brand-primary);
+        }
+
+        .btn-nav-action {
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
             font-weight: 700;
-            font-size: 0.9rem;
+            cursor: pointer;
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            cursor: pointer;
             transition: all 0.2s;
         }
-        .btn-toggle-map:hover, .btn-toggle-map.active {
-            background: var(--btn-primary);
+
+        .btn-nav-action:hover, .btn-nav-action.active {
+            background: var(--brand-primary);
             color: #ffffff;
-            border-color: var(--btn-primary);
+            border-color: var(--brand-primary);
+            box-shadow: 0 4px 12px var(--brand-glow);
         }
 
-        /* Map Container */
-        .map-section {
+        /* -------------------------------------------------------------
+           4. Bento-Style Hero Dashboard
+        ------------------------------------------------------------- */
+        .bento-hero {
+            display: grid;
+            grid-template-columns: 1.8fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        @media (max-width: 992px) {
+            .bento-hero {
+                grid-template-columns: 1fr 1fr;
+            }
+            .bento-card-main {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .bento-hero {
+                grid-template-columns: 1fr;
+            }
+            .bento-card-main {
+                grid-column: span 1;
+            }
+        }
+
+        .bento-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 22px;
+            box-shadow: var(--shadow-bento);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .bento-card-main {
+            background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface-elevated) 100%);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .bento-hero-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0 0 6px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bento-hero-desc {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin: 0 0 16px 0;
+            line-height: 1.4;
+        }
+
+        .quick-add-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .quick-input-wrap {
+            flex: 1 1 260px;
+            position: relative;
+        }
+
+        .quick-input-wrap input {
+            width: 100%;
+            padding: 12px 14px 12px 38px;
+            border-radius: 12px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--input-text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .quick-input-wrap input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px var(--brand-glow);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            font-size: 0.95rem;
+        }
+
+        .quick-area-input {
+            width: 130px;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--input-text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .quick-area-input:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px var(--brand-glow);
+        }
+
+        .btn-glow-primary {
+            background: linear-gradient(135deg, var(--brand-primary) 0%, #7c3aed 100%);
+            color: #ffffff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 4px 16px var(--brand-glow);
+            transition: all 0.2s;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-glow-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 22px var(--brand-glow);
+        }
+
+        .btn-manual-shortcut {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px dashed var(--border-subtle);
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-manual-shortcut:hover {
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
+            border-color: var(--brand-primary);
+        }
+
+        /* Bento Stat Tiles */
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: var(--bg-surface-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .stat-value {
+            font-size: 2.1rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin: 0;
+            line-height: 1.1;
+        }
+
+        .stat-footnote {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-msg-banner {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 10px;
+            min-height: 1.2em;
+        }
+
+        /* -------------------------------------------------------------
+           5. District Filter & Sorting Toolbar
+        ------------------------------------------------------------- */
+        .toolbar-wrapper {
             margin-bottom: 24px;
-            background: var(--map-container-bg);
-            border: 1px solid var(--map-border);
-            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .district-filter-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 4px 0;
+        }
+
+        .district-filter-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-pill {
+            white-space: nowrap;
+            padding: 8px 16px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .filter-pill:hover {
+            color: var(--text-primary);
+            border-color: var(--brand-primary);
+        }
+
+        .filter-pill.active {
+            background: var(--brand-primary);
+            color: #ffffff;
+            border-color: var(--brand-primary);
+            box-shadow: 0 4px 12px var(--brand-glow);
+        }
+
+        .toolbar-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .toolbar-stats-text {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .sort-select {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* -------------------------------------------------------------
+           6. Interactive Map View Container
+        ------------------------------------------------------------- */
+        .map-section {
+            margin-bottom: 28px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
             padding: 16px;
-            box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.08);
+            box-shadow: var(--shadow-bento);
             display: none;
             animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
+
         .map-section.visible {
             display: block;
         }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-8px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
         #leaflet-map {
-            height: 440px;
+            height: 460px;
             width: 100%;
-            border-radius: 14px;
-            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
             z-index: 10;
         }
+
         .map-legend {
             display: flex;
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 18px;
             margin-top: 12px;
             font-size: 0.8rem;
             font-weight: 600;
-            color: var(--msg-color);
+            color: var(--text-secondary);
         }
+
         .legend-item {
             display: flex;
             align-items: center;
             gap: 6px;
         }
+
         .legend-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
             display: inline-block;
         }
-        .dot-match { background: #10b981; box-shadow: 0 0 6px #10b981; }
-        .dot-interested { background: #3b82f6; }
-        .dot-applied { background: #10b981; }
-        .dot-viewing { background: #fbbf24; }
-        .dot-not { background: #94a3b8; }
 
-        /* Custom Leaflet Pin Styling */
+        .dot-match { background: #10b981; box-shadow: 0 0 6px #10b981; }
+        .dot-interested { background: #6366f1; }
+        .dot-applied { background: #10b981; }
+        .dot-viewing { background: #f59e0b; }
+        .dot-not { background: #64748b; }
+
         .custom-pin {
             display: flex;
             align-items: center;
@@ -234,231 +634,363 @@
             color: white;
             font-weight: 800;
             font-size: 0.8rem;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
             border: 2px solid white;
             transition: transform 0.2s;
         }
+
         .custom-pin:hover {
-            transform: scale(1.15);
+            transform: scale(1.18);
             z-index: 1000 !important;
         }
+
         .custom-pin.pin-match {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             border: 2.5px solid #ffffff;
-            box-shadow: 0 0 14px rgba(16, 185, 129, 0.7);
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.8);
             animation: pulse-pin 2s infinite;
         }
+
         @keyframes pulse-pin {
             0%, 100% { box-shadow: 0 0 14px rgba(16, 185, 129, 0.7); }
-            50% { box-shadow: 0 0 22px rgba(16, 185, 129, 0.95); }
+            50% { box-shadow: 0 0 24px rgba(16, 185, 129, 0.95); }
         }
-        .custom-pin.pin-interested { background: #3b82f6; }
+
+        .custom-pin.pin-interested { background: #6366f1; }
         .custom-pin.pin-applied { background: #10b981; }
         .custom-pin.pin-viewing { background: #f59e0b; color: #000; }
         .custom-pin.pin-not { background: #64748b; }
 
-        /* Leaflet Popup Styling */
         .leaflet-popup-content-wrapper {
             border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
-            font-family: 'Quicksand', system-ui, sans-serif;
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.3);
+            font-family: inherit;
             padding: 4px;
         }
+
         .popup-card {
             display: flex;
             flex-direction: column;
             gap: 6px;
             min-width: 220px;
         }
+
         .popup-title {
             font-weight: 700;
-            font-size: 1rem;
-            color: #0f172a;
+            font-size: 0.95rem;
+            color: var(--text-primary);
             margin: 0;
             line-height: 1.3;
         }
+
         .popup-specs {
             display: flex;
             gap: 6px;
             font-size: 0.8rem;
             font-weight: 700;
-            color: #15803d;
-            margin-top: 2px;
+            color: #10b981;
         }
+
         .popup-jump-btn {
-            background: #16a34a;
+            background: var(--brand-primary);
             color: white;
             font-weight: 700;
             font-size: 0.8rem;
-            padding: 6px 12px;
+            padding: 8px 12px;
             border-radius: 10px;
             border: none;
             margin-top: 6px;
             cursor: pointer;
             width: 100%;
-            text-align: center;
-        }
-        .popup-jump-btn:hover {
-            background: #15803d;
         }
 
-        /* Card highlight animation when jumped to from map */
-        @keyframes card-highlight-glow {
-            0% { box-shadow: 0 0 0px transparent; }
-            30% { box-shadow: 0 0 30px #10b981; transform: scale(1.02); }
-            100% { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transform: scale(1); }
-        }
-        .card-highlight-active {
-            animation: card-highlight-glow 2s ease-in-out;
+        /* -------------------------------------------------------------
+           7. Responsive 3-Column Card Grid (Framer / Airbnb Layout)
+        ------------------------------------------------------------- */
+        .cards-3col-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 24px;
         }
 
-        /* Badges */
-        .badge { display: inline-block; padding: 6px 12px; border-radius: 8px; font-size: 0.9rem; margin-right: 8px; font-weight: 600; }
-        .bg-spec { background: var(--badge-spec-bg); color: var(--badge-spec-text); }
-        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; margin-right: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .status-Interested { background: var(--status-interested); color: #ffffff; }
-        .status-Applied { background: var(--status-applied); color: #ffffff; }
-        .status-Viewing { background: var(--status-viewing); color: #000000; }
-        .status-Not { background: var(--status-not); color: #ffffff; }
-        .author-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--card-bg); padding: 4px 10px; border-radius: 16px; font-size: 0.85rem; border: 1px solid var(--border-color); font-weight: 500; }
-        .author-badge-leo { border-color: #38bdf8; color: #0ea5e9; }
-        .author-badge-ella { border-color: #f472b6; color: #ec4899; }
-        [data-theme="dark"] .author-badge-leo { color: #38bdf8; }
-        [data-theme="dark"] .author-badge-ella { color: #f472b6; }
-        .notes-box { font-size: 0.95rem; color: var(--notes-text); background: var(--notes-bg); padding: 12px; border-radius: 10px; margin-top: 12px; border-left: 4px solid var(--notes-border); line-height: 1.5; }
-        .msg { font-size: 0.9rem; margin: 8px 0 0 0; min-height: 1.2em; color: var(--msg-color); font-weight: 500; }
-        a { color: var(--link-color); text-decoration: none; font-weight: 700; transition: color 0.2s; }
-        a:hover { color: var(--link-hover); text-decoration: underline; }
-        
-        #auth-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; }
-        .auth-box { max-width: 400px; width: 100%; padding: 32px; text-align: center; }
-        .auth-box h2 { color: var(--text-color); margin-bottom: 8px; }
-        
-        .district-jump-bar { position: sticky; top: 0; z-index: 40; background: var(--bg-color); display: flex; gap: 10px; padding: 10px 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); }
-        .district-jump-bar::-webkit-scrollbar { display: none; }
-        .district-pill { white-space: nowrap; padding: 8px 16px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; color: var(--text-color); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .district-pill:hover, .district-pill.active { background: var(--btn-primary); color: white; border-color: var(--btn-primary); }
-        .district-section { margin-bottom: 32px; scroll-margin-top: 70px; }
-        .district-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; padding: 0 4px; }
-        .district-header h2 { margin: 0; font-size: 1.5rem; }
-        .slide-counter { font-size: 0.9rem; font-weight: 700; color: var(--msg-color); background: var(--card-bg); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-color); }
-        .snap-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 16px; padding-bottom: 12px; scrollbar-width: none; -ms-overflow-style: none; }
-        .snap-track::-webkit-scrollbar { display: none; }
-        
-        /* Snap Card & Mutual Match Styling */
-        .snap-card {
-            flex: 0 0 92%;
-            max-width: 440px;
-            scroll-snap-align: center;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 18px;
-            border: 1px solid var(--card-border);
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        @media (max-width: 1040px) {
+            .cards-3col-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .cards-3col-grid {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+        }
+
+        .apartment-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            gap: 14px;
-            box-sizing: border-box;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
             position: relative;
-            transition: all 0.25s ease-in-out;
-        }
-        @media (min-width: 768px) { .snap-card { flex: 0 0 400px; scroll-snap-align: start; } }
-
-        .snap-card.mutual-match {
-            border: 2.5px solid var(--match-border) !important;
-            box-shadow: 0 0 24px var(--match-glow), 0 8px 16px -2px rgba(16, 185, 129, 0.25) !important;
         }
 
-        .mutual-badge {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #ffffff;
-            font-size: 0.85rem;
-            font-weight: 800;
-            padding: 7px 14px;
-            border-radius: 20px;
-            display: inline-flex;
+        .apartment-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--border-focus);
+        }
+
+        .apartment-card.mutual-match {
+            border: 2px solid var(--match-border) !important;
+            box-shadow: 0 0 24px var(--match-glow), var(--shadow-card) !important;
+        }
+
+        /* 16:9 Image Area & Hover Zoom */
+        .card-media-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            background: var(--bg-surface-elevated);
+        }
+
+        .card-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .apartment-card:hover .card-photo {
+            transform: scale(1.04);
+        }
+
+        /* Stylized Mesh Placeholder when image_url is missing */
+        .media-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.3) 0%, transparent 60%),
+                        radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.3) 0%, transparent 60%),
+                        var(--bg-surface-elevated);
+            color: var(--text-muted);
+            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .apartment-card:hover .media-placeholder {
+            transform: scale(1.03);
+        }
+
+        .placeholder-icon {
+            opacity: 0.65;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .apartment-card:hover .placeholder-icon {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        /* Glassmorphic Floating Badges on top of 16:9 Image */
+        .media-overlay-top-left {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 5;
+        }
+
+        .media-overlay-top-right {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
             align-items: center;
             gap: 6px;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
-            margin-bottom: 8px;
+            z-index: 5;
+        }
+
+        .media-overlay-bottom-left {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            z-index: 5;
+        }
+
+        .glass-badge {
+            background: var(--badge-glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--badge-glass-border);
+            color: var(--badge-glass-text);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .status-pill {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .status-Interested { border-left: 3.5px solid #6366f1; }
+        .status-Viewing { border-left: 3.5px solid #f59e0b; }
+        .status-Applied { border-left: 3.5px solid #10b981; }
+        .status-Not { border-left: 3.5px solid #64748b; }
+
+        .mutual-glass-badge {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.95) 100%);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.7);
             animation: pulse-glow 2.5s infinite;
         }
 
-        @keyframes pulse-glow {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.02); opacity: 0.95; }
-        }
-
-        .card-top-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .compare-label {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.85rem;
-            font-weight: 700;
+        .compare-pill {
             cursor: pointer;
-            padding: 4px 10px;
-            border-radius: 12px;
-            background: var(--pill-bg);
-            border: 1px solid var(--pill-border);
             user-select: none;
             transition: all 0.2s;
         }
-        .compare-label input {
-            width: auto;
-            margin: 0;
+
+        .compare-pill input {
             cursor: pointer;
+            margin: 0;
+            width: auto;
         }
-        .compare-label:hover {
-            opacity: 0.9;
+
+        /* Card Body Content */
+        .card-body {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            flex: 1;
+            justify-content: space-between;
+        }
+
+        .card-title-link {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            line-height: 1.35;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            transition: color 0.2s;
+        }
+
+        .card-title-link:hover {
+            color: var(--brand-primary);
+        }
+
+        /* Metric Grid Bar */
+        .metric-bar {
+            display: grid;
+            grid-template-columns: 1.2fr 0.9fr 1fr;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 8px 12px;
+            align-items: center;
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-item:not(:last-child) {
+            border-right: 1px solid var(--border-subtle);
+            padding-right: 8px;
+            margin-right: 8px;
+        }
+
+        .metric-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .metric-value {
+            font-size: 0.98rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-top: 1px;
+        }
+
+        .metric-value.price {
+            color: #10b981;
         }
 
         /* Voting Section */
         .vote-section {
-            background: var(--pill-bg);
-            border: 1px solid var(--pill-border);
-            border-radius: 12px;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
             padding: 10px 12px;
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
+
         .vote-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 700;
-            color: var(--text-color);
+            color: var(--text-muted);
         }
+
         .vote-status-summary {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--msg-color);
+            font-weight: 700;
+            color: var(--text-primary);
         }
+
         .vote-btn-row {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 6px;
         }
+
         .vote-btn {
             padding: 7px 4px;
             margin: 0;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 700;
-            border-radius: 8px;
-            background: var(--card-bg);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -466,929 +998,1213 @@
             gap: 4px;
             transition: all 0.2s;
         }
+
         .vote-btn:hover {
             transform: translateY(-1px);
-        }
-        .vote-btn.active-love {
-            background: #10b981;
-            color: white;
-            border-color: #059669;
-            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
-        }
-        .vote-btn.active-neutral {
-            background: #fbbf24;
-            color: #78350f;
-            border-color: #f59e0b;
-            box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
-        }
-        .vote-btn.active-pass {
-            background: #f87171;
-            color: white;
-            border-color: #ef4444;
-            box-shadow: 0 2px 6px rgba(248, 113, 113, 0.4);
+            border-color: var(--brand-primary);
         }
 
-        /* Phase 3: Dossier Accordion */
+        .vote-btn.active-love {
+            background: #10b981;
+            color: #ffffff;
+            border-color: #059669;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .vote-btn.active-neutral {
+            background: #f59e0b;
+            color: #ffffff;
+            border-color: #d97706;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+        }
+
+        .vote-btn.active-pass {
+            background: #f43f5e;
+            color: #ffffff;
+            border-color: #e11d48;
+            box-shadow: 0 2px 8px rgba(244, 63, 94, 0.4);
+        }
+
+        /* -------------------------------------------------------------
+           8. Phase 3: Brain / Dossier Accordion
+        ------------------------------------------------------------- */
         .dossier-box {
-            margin-top: 6px;
             border: 1px solid var(--dossier-border);
             background: var(--dossier-bg);
             border-radius: 14px;
             overflow: hidden;
             transition: all 0.25s ease-in-out;
         }
+
         .dossier-header-btn {
             width: 100%;
             background: transparent;
-            color: var(--text-color);
+            color: var(--text-primary);
             border: none;
-            padding: 10px 14px;
+            padding: 10px 12px;
             margin: 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: 700;
             cursor: pointer;
             border-radius: 0;
             box-shadow: none;
         }
+
         .dossier-header-btn:hover {
-            background: rgba(0,0,0,0.03);
+            background: rgba(255, 255, 255, 0.03);
             transform: none;
         }
+
         .dossier-counts {
-            display: inline-flex;
-            gap: 6px;
+            display: flex;
             align-items: center;
+            gap: 6px;
         }
+
         .dossier-badge-pro {
-            background: var(--pro-bg);
-            color: var(--pro-text);
-            border: 1px solid var(--pro-border);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.75rem;
+            background: #10b981;
+            color: #ffffff;
+            font-size: 0.72rem;
             font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 10px;
         }
+
         .dossier-badge-con {
-            background: var(--con-bg);
-            color: var(--con-text);
-            border: 1px solid var(--con-border);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.75rem;
+            background: #f43f5e;
+            color: #ffffff;
+            font-size: 0.72rem;
             font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 10px;
         }
+
         .dossier-arrow {
-            transition: transform 0.25s ease;
-            font-size: 0.8rem;
-            color: var(--msg-color);
+            font-size: 0.7rem;
+            transition: transform 0.2s;
+            color: var(--text-muted);
         }
+
         .dossier-arrow.open {
             transform: rotate(180deg);
         }
+
         .dossier-body {
             display: none;
-            padding: 12px 14px;
+            padding: 12px;
             border-top: 1px solid var(--dossier-border);
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             line-height: 1.45;
         }
+
         .dossier-body.open {
             display: block;
         }
+
+        .dossier-vibe {
+            font-style: italic;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-weight: 500;
+            line-height: 1.35;
+        }
+
         .spec-pills-grid {
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
+
         .spec-pill {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 3px 8px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 4px 8px;
             border-radius: 8px;
             font-size: 0.75rem;
             font-weight: 600;
-            color: var(--text-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
-        .dossier-vibe {
-            font-size: 0.8rem;
-            font-style: italic;
-            color: var(--msg-color);
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px dashed var(--dossier-border);
-        }
+
         .eval-list {
-            margin: 0;
-            padding: 0;
             list-style: none;
+            padding: 0;
+            margin: 0;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 5px;
         }
+
         .eval-item {
             display: flex;
             align-items: flex-start;
             gap: 6px;
-            font-size: 0.8rem;
-            line-height: 1.35;
             padding: 6px 8px;
             border-radius: 8px;
+            font-size: 0.78rem;
+            line-height: 1.35;
         }
+
         .eval-item.pro {
             background: var(--pro-bg);
             border: 1px solid var(--pro-border);
             color: var(--pro-text);
         }
+
         .eval-item.con {
             background: var(--con-bg);
             border: 1px solid var(--con-border);
             color: var(--con-text);
         }
-        .eval-icon {
-            font-weight: 800;
-            font-size: 0.9rem;
-            line-height: 1;
+
+        .notes-box {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            background: var(--bg-surface-elevated);
+            padding: 10px 12px;
+            border-radius: 10px;
+            border-left: 3px solid var(--brand-primary);
+            line-height: 1.4;
         }
 
-        .apt-info { display: flex; flex-direction: column; gap: 8px; }
-        .apt-header-badges { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-        .apt-title-link { font-size: 1.15rem; line-height: 1.35; margin: 2px 0; }
-        .apt-stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0; }
-        .apt-actions { display: flex; gap: 10px; margin-top: auto; }
-        .apt-actions button { flex: 1; padding: 10px; margin: 0; }
+        .card-actions-row {
+            display: flex;
+            gap: 8px;
+            padding-top: 6px;
+        }
 
-        /* Floating Comparison Dock */
-        #compare-dock {
+        .btn-card-action {
+            flex: 1;
+            padding: 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-surface-elevated);
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .btn-card-action:hover {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .btn-card-action.danger:hover {
+            border-color: #f43f5e;
+            color: #f43f5e;
+            background: rgba(244, 63, 94, 0.1);
+        }
+
+        /* -------------------------------------------------------------
+           9. Comparison Dock & Modal
+        ------------------------------------------------------------- */
+        .compare-dock {
             position: fixed;
             bottom: 24px;
             left: 50%;
-            transform: translateX(-50%) translateY(150%);
-            background: #0f172a;
-            color: #f8fafc;
-            padding: 12px 20px;
+            transform: translateX(-50%) translateY(120px);
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid var(--border-subtle);
             border-radius: 20px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
             display: flex;
             align-items: center;
             gap: 16px;
             z-index: 100;
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
-            opacity: 0;
-            max-width: 90vw;
-            border: 1px solid #334155;
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        #compare-dock.visible {
+
+        .compare-dock.visible {
             transform: translateX(-50%) translateY(0);
-            opacity: 1;
         }
+
         .dock-badge {
-            background: #22c55e;
-            color: #022c22;
+            background: var(--brand-primary);
+            color: white;
+            font-weight: 800;
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 0.85rem;
-            font-weight: 800;
-        }
-        .dock-btn {
-            background: #22c55e;
-            color: #022c22;
-            font-weight: 700;
-            padding: 9px 18px;
-            border-radius: 12px;
-            border: none;
-            cursor: pointer;
-            margin: 0;
-            width: auto;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-        .dock-btn:hover {
-            background: #16a34a;
-            color: #ffffff;
-            transform: translateY(-1px);
-        }
-        .dock-clear-btn {
-            background: transparent;
-            color: #94a3b8;
-            border: 1px solid #475569;
-            padding: 8px 14px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            margin: 0;
-            width: auto;
-            transition: all 0.2s;
-        }
-        .dock-clear-btn:hover {
-            color: #ffffff;
-            border-color: #cbd5e1;
         }
 
-        /* Side-by-Side Comparison Modal */
-        #compare-modal {
+        .btn-dock-compare {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+        }
+
+        .btn-dock-clear {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-dock-clear:hover {
+            color: var(--text-primary);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.65);
+            background: rgba(0, 0, 0, 0.65);
             backdrop-filter: blur(6px);
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 200;
+            z-index: 1000;
             padding: 20px;
-            box-sizing: border-box;
         }
-        #compare-modal.open {
+
+        .modal-overlay.open {
             display: flex;
         }
-        .modal-container {
+
+        .modal-card {
             background: var(--modal-bg);
-            color: var(--text-color);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
             width: 100%;
-            max-width: 1100px;
+            max-width: 960px;
             max-height: 90vh;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-            border: 1px solid var(--card-border);
             display: flex;
             flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             overflow: hidden;
-            animation: modal-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        @keyframes modal-pop {
-            from { opacity: 0; transform: scale(0.96); }
-            to { opacity: 1; transform: scale(1); }
+
+        @keyframes modalPop {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
+
         .modal-header {
-            padding: 16px 24px;
+            padding: 18px 24px;
             background: var(--modal-header-bg);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-subtle);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
         }
-        .modal-header h2 {
+
+        .modal-header h3 {
             margin: 0;
-            font-size: 1.35rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
         }
-        .modal-controls {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        .toggle-diff-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            cursor: pointer;
-            user-select: none;
-        }
-        .toggle-diff-label input {
-            width: auto;
-            margin: 0;
-            cursor: pointer;
-        }
+
         .modal-close-btn {
             background: transparent;
-            color: var(--text-color);
             border: none;
-            font-size: 1.5rem;
-            width: auto;
-            padding: 4px 10px;
-            margin: 0;
+            color: var(--text-muted);
+            font-size: 1.4rem;
             cursor: pointer;
+            padding: 4px;
             border-radius: 8px;
+            line-height: 1;
         }
+
         .modal-close-btn:hover {
-            background: rgba(0,0,0,0.06);
-            transform: none;
+            color: var(--text-primary);
         }
-        .modal-body {
-            overflow: auto;
-            padding: 20px;
-            flex: 1;
+
+        .modal-body-scroll {
+            padding: 24px;
+            overflow-y: auto;
         }
-        
+
         /* Comparison Table */
         .comparison-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
         }
+
         .comparison-table th, .comparison-table td {
-            padding: 14px 16px;
-            border: 1px solid var(--border-color);
-            text-align: left;
+            padding: 12px 14px;
+            border: 1px solid var(--border-subtle);
             vertical-align: top;
+            text-align: left;
         }
-        .comparison-table th {
-            background: var(--pill-bg);
-            font-weight: 700;
-        }
-        .comparison-table th.col-header {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            background: var(--modal-header-bg);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-            min-width: 240px;
-        }
-        .comparison-table tr.hidden-row {
-            display: none;
-        }
+
         .delta-tag {
             display: inline-block;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 3px 8px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 2px 6px;
             border-radius: 6px;
-            margin-top: 4px;
+            margin-top: 3px;
         }
+
         .delta-tag.lowest {
-            background: #dcfce7;
-            color: #15803d;
-            border: 1px solid #86efac;
+            background: #10b981;
+            color: white;
         }
+
         .delta-tag.higher {
-            background: #fee2e2;
-            color: #b91c1c;
-            border: 1px solid #fca5a5;
+            background: var(--bg-surface-elevated);
+            color: var(--text-muted);
         }
-        [data-theme="dark"] .delta-tag.lowest {
-            background: #065f46;
-            color: #a7f3d0;
-            border-color: #10b981;
+
+        .hidden-row {
+            display: none !important;
         }
-        [data-theme="dark"] .delta-tag.higher {
-            background: #7f1d1d;
-            color: #fecaca;
-            border-color: #ef4444;
+
+        /* Auth Overlay */
+        #auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .auth-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 36px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .auth-card h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
+
+        .auth-card p {
+            margin: 0 0 20px 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .auth-tabs {
+            display: flex;
+            background: var(--bg-surface-elevated);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .auth-tab.active {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .auth-card input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--input-text);
+            margin-bottom: 12px;
+            font-size: 0.92rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .auth-card input:focus {
+            border-color: var(--brand-primary);
+        }
+
+        .btn-auth-submit {
+            width: 100%;
+            padding: 12px;
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 4px 14px var(--brand-glow);
+        }
+
+        .visitor-notice-pill {
+            margin-top: 14px;
+            padding: 10px;
+            border-radius: 10px;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
         }
     </style>
 </head>
 <body>
 
-<div id="auth-overlay">
-    <div class="card auth-box">
-        <h2>Sign In</h2>
-        <p style="color: #94a3b8; font-size: 0.9rem;">Sign in with your username & password</p>
-        <input id="login-email" placeholder="Email (leo or ella)">
-        <input id="login-pass" type="password" placeholder="Password">
-        <button onclick="handleLogin()">Sign In</button>
-        <p id="auth-msg" class="msg" style="color: #f87171;"></p>
-    </div>
-</div>
-
 <div class="container">
-    <div class="header-bar">
-        <div>
-            <h1 style="margin-bottom: 4px;">Helsinki Apartment Tracker</h1>
-            <span id="sync-status" style="font-size: 0.85rem; color: #10b981; font-weight: 600;">⚡ Realtime Connected</span>
-        </div>
-        <div class="user-pill">
-            <button id="theme-toggle" onclick="toggleTheme()" style="width: auto; background: transparent; border: none; color: var(--text-color); padding: 0 8px 0 0; margin: 0; cursor: pointer; font-size: 1.2rem; border-right: 1px solid var(--border-color);" aria-label="Toggle Theme">
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <a href="#" class="nav-brand">
+            <div class="brand-logo-icon">🏠</div>
+            <div>
+                <h1 class="brand-title">Helsinki Apartment Tracker</h1>
+                <p class="brand-subtitle">Leo & Ella's curated home search</p>
+            </div>
+        </a>
+
+        <div class="nav-controls">
+            <button class="btn-nav-action" id="map-toggle-btn" onclick="toggleMapView()">
+                🗺️ <span>Map View</span>
+            </button>
+            <button class="btn-nav-action" onclick="openManualModal()">
+                ✏️ <span>Add Manual</span>
+            </button>
+            <div class="user-pill">
+                <span class="user-dot"></span>
+                <span id="nav-user-label">Logged In</span>
+            </div>
+            <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Mode">
                 🌙
             </button>
-            <div class="user-dot" style="margin-left: 8px;"></div>
-            <span id="current-user-display" style="font-weight: 600; font-size: 0.95rem;">Logged In</span>
-            <button onclick="handleLogout()" style="width: auto; background: transparent; border: none; color: var(--btn-del-hover); padding: 0 0 0 8px; margin: 0; cursor: pointer; font-size: 0.85rem;">Logout</button>
-        </div>
-    </div>
-
-    <div id="district-jump-bar" class="district-jump-bar"></div>
-
-    <!-- Visitor Banner (visible only in Visitor mode) -->
-    <div id="visitor-banner" class="card" style="display: none; background: var(--notes-bg); border-left: 5px solid #3b82f6; margin-bottom: 24px; padding: 16px 20px;">
-        <div style="display: flex; align-items: center; gap: 14px;">
-            <span style="font-size: 1.8rem;">👁️</span>
-            <div>
-                <h3 style="margin: 0 0 4px 0; font-size: 1.05rem; color: var(--text-color);">Visitor Mode (Read-Only)</h3>
-                <p style="margin: 0; font-size: 0.85rem; color: var(--msg-color); line-height: 1.4;">You are logged in with guest view access. You can browse all listings, view interactive maps, inspect dossiers & specs, and run side-by-side comparisons. Adding, editing, deleting, and voting are reserved for Leo and Ella.</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="entry-forms-grid" class="grid">
-        <div class="card">
-            <h3 id="form-title">Manual Entry / Edit</h3>
-            <input type="hidden" id="m-id">
-            <input id="m-url" placeholder="Apartment Link (https://...)">
-            <input id="m-title" placeholder="Address / Title (e.g. Kiillekuja 3)">
-            <input id="m-area" placeholder="asuinalue (e.g. Kruunuvuori, Pohjois-Pasila)">
-            <input id="m-price" type="number" step="0.01" min="1" placeholder="Price (€ / kk)">
-            <input id="m-size" type="number" step="0.1" min="1" placeholder="Size (m²)">
-            <select id="m-status">
-                <option value="Interested">Status: Interested</option>
-                <option value="Applied">Status: Applied</option>
-                <option value="Viewing Booked">Status: Viewing Booked</option>
-                <option value="Not Interested">Status: Not Interested</option>
-            </select>
-            <textarea id="m-notes" placeholder="Notes (e.g. 4/6 krs, oma sauna, lasitettu parveke, vesi sisältyy)"></textarea>
-            <div style="display: flex; gap: 8px;">
-                <button style="flex: 1;" onclick="submitManual()" id="m-save-btn">Save Apartment</button>
-                <button type="button" id="m-cancel-btn" style="display: none; background: #64748b;" onclick="cancelEdit()">Cancel Edit</button>
-            </div>
-            <p id="m-status-msg" class="msg" style="color: #94a3b8;"></p>
-        </div>
-        <div class="card">
-            <h3>Vuokraovi Auto-Scraper</h3>
-            <input id="s-url" placeholder="Paste Vuokraovi Link (https://www.vuokraovi.com/kohde/...)">
-            <input id="s-area" placeholder="Optional: Fallback asuinalue (e.g. Kruunuvuori)">
-            <button onclick="submitScrape()">Auto-Fetch, Geocode & Save</button>
-            <p id="s-status" class="msg" style="color: #94a3b8;"></p>
-        </div>
-    </div>
-
-    <!-- Toolbar with Sorting & Map View Toggle -->
-    <div class="toolbar">
-        <div class="toolbar-left">
-            <span>Sort inside each asuinalue by:</span>
-            <select id="sort-select" onchange="loadApartments()">
-                <option value="price-false">Price: Low to High (€/kk)</option>
-                <option value="price-true">Price: High to Low (€/kk)</option>
-                <option value="size_m2-true">Size: Largest First (m²)</option>
-                <option value="size_m2-false">Size: Smallest First (m²)</option>
-                <option value="eur_per_m2-false">Best Value: Lowest €/m²</option>
-            </select>
-            <button id="btn-toggle-map" onclick="toggleMapView()" class="btn-toggle-map">
-                🗺️ <span>Open Map View</span>
+            <button class="btn-nav-action" onclick="logout()" style="padding: 8px 12px; color: var(--text-muted);">
+                Log out
             </button>
         </div>
-        <div id="mutual-count-badge" style="font-weight: 700; font-size: 0.9rem; color: #10b981;"></div>
-    </div>
+    </header>
 
-    <!-- Phase 4: Collapsible Leaflet Map Section -->
-    <div id="map-section" class="map-section">
+    <!-- Bento-Style Hero Dashboard -->
+    <section class="bento-hero">
+        <!-- Main Quick-Add Bento Block -->
+        <div class="bento-card bento-card-main">
+            <div>
+                <h2 class="bento-hero-title">
+                    <span>✨</span> Track Any Vuokraovi Listing
+                </h2>
+                <p class="bento-hero-desc">
+                    Paste a link to automatically scrape photos, extract specs, geocode coordinates with HSL, and generate pros/cons.
+                </p>
+            </div>
+
+            <div>
+                <div class="quick-add-group">
+                    <div class="quick-input-wrap">
+                        <span class="input-icon">🔗</span>
+                        <input type="url" id="s-url" placeholder="https://www.vuokraovi.com/vuokra-asunto/..." autocomplete="off">
+                    </div>
+                    <input type="text" id="s-area" class="quick-area-input" placeholder="Fallback district">
+                    <button class="btn-glow-primary" onclick="submitScrape()" id="scrape-btn">
+                        <span>Fetch Listing</span> <span>↗</span>
+                    </button>
+                    <button class="btn-manual-shortcut" onclick="openManualModal()">
+                        + Manual
+                    </button>
+                </div>
+                <div class="status-msg-banner" id="s-status"></div>
+            </div>
+        </div>
+
+        <!-- Bento Stat Tile 1: Total Apartments -->
+        <div class="bento-card">
+            <div class="stat-header">
+                <span class="stat-label">Saved Listings</span>
+                <div class="stat-icon">🏢</div>
+            </div>
+            <div>
+                <p class="stat-value tabular-nums" id="stat-total-count">0</p>
+                <div class="stat-footnote" id="stat-districts-count">Across 0 districts</div>
+            </div>
+        </div>
+
+        <!-- Bento Stat Tile 2: Avg €/m² -->
+        <div class="bento-card">
+            <div class="stat-header">
+                <span class="stat-label">Average Rent</span>
+                <div class="stat-icon">📈</div>
+            </div>
+            <div>
+                <p class="stat-value tabular-nums" id="stat-avg-sqm">0 <span style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted);">€/m²</span></p>
+                <div class="stat-footnote" id="stat-avg-sub">Hki baseline: ~23.5 €/m²</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Leaflet Map Section -->
+    <section class="map-section" id="map-section">
         <div id="leaflet-map"></div>
         <div class="map-legend">
             <span class="legend-item"><span class="legend-dot dot-match"></span> 💚 Mutual Match</span>
             <span class="legend-item"><span class="legend-dot dot-interested"></span> Interested</span>
-            <span class="legend-item"><span class="legend-dot dot-applied"></span> Applied</span>
             <span class="legend-item"><span class="legend-dot dot-viewing"></span> Viewing Booked</span>
+            <span class="legend-item"><span class="legend-dot dot-applied"></span> Applied</span>
             <span class="legend-item"><span class="legend-dot dot-not"></span> Not Interested</span>
-            <span style="color: var(--msg-color); font-size: 0.75rem;">• Geocoded via HSL Digitransit</span>
         </div>
-        <div id="mutual-count-badge" style="font-weight: 700; font-size: 0.9rem; color: #10b981;">
-            <!-- Mutual matches counter -->
+    </section>
+
+    <!-- District Filter & Sorting Toolbar -->
+    <div class="toolbar-wrapper">
+        <div class="district-filter-bar" id="district-filter-bar">
+            <!-- Filter pills generated dynamically -->
+        </div>
+
+        <div class="toolbar-bottom">
+            <span class="toolbar-stats-text" id="listings-counter-text">Showing listings...</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label for="sort-select" style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">SORT BY:</label>
+                <select id="sort-select" class="sort-select" onchange="loadApartments()">
+                    <option value="price-false">Price (Lowest first)</option>
+                    <option value="price-true">Price (Highest first)</option>
+                    <option value="size_m2-true">Size (Largest first)</option>
+                    <option value="size_m2-false">Size (Smallest first)</option>
+                    <option value="eur_per_m2-false">€/m² (Lowest first)</option>
+                </select>
+            </div>
         </div>
     </div>
 
-    <div id="groups"></div>
+    <!-- Main Responsive 3-Column Grid -->
+    <main class="cards-3col-grid" id="apartments-grid">
+        <!-- Rendered dynamically -->
+    </main>
 </div>
 
-<!-- Floating Comparison Dock -->
-<div id="compare-dock">
-    <span class="dock-badge" id="dock-selected-count">0 / 3</span>
-    <span style="font-size: 0.9rem; font-weight: 600;">Selected for comparison</span>
-    <button class="dock-clear-btn" onclick="clearComparison()">Clear</button>
-    <button class="dock-btn" onclick="openComparisonModal()">⚖️ Open Comparison</button>
+<!-- Comparison Floating Dock -->
+<div class="compare-dock" id="compare-dock">
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="dock-badge" id="dock-selected-count">0 / 3</span>
+        <span style="font-size: 0.88rem; font-weight: 700;">Apartments Selected</span>
+    </div>
+    <button class="btn-dock-compare" onclick="openComparisonModal()">Compare Side-by-Side ↗</button>
+    <button class="btn-dock-clear" onclick="clearComparison()">Clear</button>
 </div>
 
-<!-- Side-by-Side Comparison Modal -->
-<div id="compare-modal" onclick="handleModalBackdropClick(event)">
-    <div class="modal-container">
+<!-- Comparison Modal -->
+<div class="modal-overlay" id="compare-modal" onclick="handleModalBackdropClick(event)">
+    <div class="modal-card">
         <div class="modal-header">
-            <h2><span>⚖️</span> Apartment Side-by-Side Comparison</h2>
-            <div class="modal-controls">
-                <label class="toggle-diff-label">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <h3>Side-by-Side Apartment Comparison</h3>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; color: var(--text-secondary);">
                     <input type="checkbox" id="diff-toggle" onchange="toggleDifferencesOnly(this.checked)">
-                    Show Differences Only
+                    Highlight Differences Only
                 </label>
-                <button class="modal-close-btn" onclick="closeComparisonModal()" title="Close">&times;</button>
+            </div>
+            <button class="modal-close-btn" onclick="closeComparisonModal()">&times;</button>
+        </div>
+        <div class="modal-body-scroll" id="modal-table-container">
+            <!-- Table dynamically injected -->
+        </div>
+    </div>
+</div>
+
+<!-- Manual Entry / Edit Modal -->
+<div class="modal-overlay" id="manual-modal" onclick="if(event.target.id === 'manual-modal') closeManualModal()">
+    <div class="modal-card" style="max-width: 580px;">
+        <div class="modal-header">
+            <h3 id="form-title">Add / Edit Apartment</h3>
+            <button class="modal-close-btn" onclick="closeManualModal()">&times;</button>
+        </div>
+        <div class="modal-body-scroll">
+            <input type="hidden" id="m-id">
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">LISTING URL</label>
+            <input type="url" id="m-url" placeholder="https://www.vuokraovi.com/vuokra-asunto/..." style="width:100%; padding:10px; margin-bottom:12px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-text);">
+
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">IMAGE URL (PHOTO)</label>
+            <input type="url" id="m-image" placeholder="https://images.vuokraovi.com/..." style="width:100%; padding:10px; margin-bottom:12px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-text);">
+
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">TITLE / STREET ADDRESS</label>
+            <input type="text" id="m-title" placeholder="e.g. Taidemaalarinkatu 3" style="width:100%; padding:10px; margin-bottom:12px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-text);">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">DISTRICT (ASUINALUE)</label>
+                    <input type="text" id="m-area" placeholder="e.g. Kuninkaantammi" style="width:100%; padding:10px; margin-bottom:12px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-text);">
+                </div>
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">STATUS</label>
+                    <select id="m-status" style="width:100%; padding:10px; margin-bottom:12px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-text);">
+                        <option value="Interested">Interested</option>
+                        <option value="Viewing booked">Viewing booked</option>
+                        <option value="Applied">Applied</option>
+                        <option value="Not interested">Not interested</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">PRICE (€/KK)</label>
+                    <input type="number" id="m-price" placeholder="950" style="width:100%; padding:10px; margin-bottom:12px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-text);">
+                </div>
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">SIZE (M²)</label>
+                    <input type="number" step="0.5" id="m-size" placeholder="48.5" style="width:100%; padding:10px; margin-bottom:12px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-text);">
+                </div>
+            </div>
+
+            <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">NOTES / OBSERVATIONS</label>
+            <textarea id="m-notes" placeholder="Sunny top-floor balcony, looking to move in Dec..." style="width:100%; min-height:80px; padding:10px; margin-bottom:16px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--input-text);"></textarea>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-glow-primary" style="flex:1;" id="m-save-btn" onclick="submitManual()">Save Listing</button>
+                <button class="btn-card-action" onclick="closeManualModal()">Cancel</button>
+            </div>
+            <div id="m-status-msg" style="font-size:0.85rem; font-weight:600; margin-top:10px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Auth Overlay -->
+<div id="auth-overlay">
+    <div class="auth-card">
+        <div class="brand-logo-icon" style="margin: 0 auto 14px auto;">🏠</div>
+        <h2>Helsinki Apartment Tracker</h2>
+        <p>Log in to view and evaluate apartments with Leo & Ella</p>
+
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Partner Sign In</button>
+            <button class="auth-tab" id="tab-visitor" onclick="switchAuthTab('visitor')">Visitor Access</button>
+        </div>
+
+        <div id="login-fields">
+            <input type="text" id="email" placeholder="Username or email (leo / ella)" autocomplete="username" onkeydown="if(event.key==='Enter') handleAuth()">
+            <input type="password" id="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleAuth()">
+            <button class="btn-auth-submit" id="auth-submit-btn" onclick="handleAuth()">Sign In</button>
+        </div>
+
+        <div id="visitor-fields" style="display: none;">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">
+                Explore all tracked Helsinki listings, view maps, and evaluate district dossiers in read-only mode.
+            </p>
+            <button class="btn-auth-submit" style="background: #10b981; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);" onclick="handleVisitorAccess()">
+                Continue as Visitor 👁️
+            </button>
+            <div class="visitor-notice-pill">
+                🔒 Editing, adding, voting, and deleting listings are disabled for visitor accounts.
             </div>
         </div>
-        <div class="modal-body" id="modal-table-container"></div>
+
+        <div id="auth-msg" style="margin-top: 14px; font-size: 0.85rem; font-weight: 600; color: #f43f5e;"></div>
     </div>
 </div>
 
 <script>
+// -------------------------------------------------------------
+// App State & Supabase Initialization
+// -------------------------------------------------------------
 const SUPABASE_PROJECT_URL = "https://fyrwiytzuxsebluygtjb.supabase.co";
 const SUPABASE_ANON_PUBLIC_KEY = "sb_publishable_EyvpHQRMoLrGmstxquNbfw_txuKKrex";
-
 const sb = supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_PUBLIC_KEY);
-let currentSession = null;
-let currentDisplayName = "Leo";
+
+let currentDisplayName = "Partner";
 let isVisitor = false;
-
-let apartmentsCache = {};
-let selectedForComparison = new Set();
 let openedDossiers = new Set();
+let selectedForComparison = new Set();
+let apartmentsCache = {};
+let allApartmentsList = [];
+let activeDistrictFilter = "ALL";
 
-// Map & Clustering state (Phase 4)
+// Map Basemap & Layer State
 let leafletMap = null;
 let clusterGroup = null;
+let markerClusterGroup = null;
+let currentTileLayer = null;
 let isMapVisible = false;
 
-// Theme Toggle Logic
+// -------------------------------------------------------------
+// Theme Management (Dual Mode with Persistence)
+// -------------------------------------------------------------
 function initTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.getElementById('theme-toggle').textContent = '☀️';
+    const saved = localStorage.getItem("hat_theme");
+    if (saved) {
+        setTheme(saved);
+    } else {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(prefersDark ? 'dark' : 'light');
     }
 }
 
+function setTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("hat_theme", theme);
+    const btn = document.getElementById("theme-toggle-btn");
+    if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    updateMapTileTheme();
+}
+
 function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.getElementById('theme-toggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    setTheme(next);
 }
 
 initTheme();
 
+// -------------------------------------------------------------
+// Auth Logic
+// -------------------------------------------------------------
+function switchAuthTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById("tab-login").classList.toggle("active", isLogin);
+    document.getElementById("tab-visitor").classList.toggle("active", !isLogin);
+    document.getElementById("login-fields").style.display = isLogin ? "block" : "none";
+    document.getElementById("visitor-fields").style.display = isLogin ? "none" : "block";
+    document.getElementById("auth-msg").textContent = "";
+}
+
+async function handleAuth() {
+    const rawInput = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const msg = document.getElementById("auth-msg");
+    const btn = document.getElementById("auth-submit-btn");
+
+    if (!rawInput || !password) {
+        msg.textContent = "Please fill in email/username and password.";
+        return;
+    }
+
+    const email = rawInput.includes("@") ? rawInput : `${rawInput}@tracker.local`;
+
+    btn.textContent = "Signing in...";
+    try {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+            msg.textContent = error.message;
+            btn.textContent = "Sign In";
+            return;
+        }
+
+        document.getElementById("auth-overlay").style.display = "none";
+        updateUserDisplay(data.user);
+        setupRealtime();
+        loadApartments();
+    } catch (err) {
+        msg.textContent = err.message || "Failed to sign in. Please try again.";
+        btn.textContent = "Sign In";
+    }
+}
+
+async function handleVisitorAccess() {
+    const msg = document.getElementById("auth-msg");
+    msg.style.color = "var(--text-muted)";
+    msg.textContent = "Connecting visitor session...";
+
+    try {
+        const { data, error } = await sb.auth.signInWithPassword({
+            email: "visitor@helsinki.local",
+            password: "VisitorPassword123!"
+        });
+
+        if (error) {
+            const { data: anonData, error: anonErr } = await sb.auth.signInAnonymously();
+            if (anonErr) {
+                msg.style.color = "#f43f5e";
+                msg.textContent = "Visitor login error: " + error.message;
+                return;
+            }
+        }
+
+        const { data: sessionData } = await sb.auth.getSession();
+        document.getElementById("auth-overlay").style.display = "none";
+        updateUserDisplay(sessionData.session ? sessionData.session.user : { email: "visitor@helsinki.local" });
+        setupRealtime();
+        loadApartments();
+    } catch (err) {
+        msg.style.color = "#f43f5e";
+        msg.textContent = "Visitor login error: " + (err.message || "Connection failed.");
+    }
+}
+
+function updateUserDisplay(user) {
+    const email = (user && user.email) ? user.email.toLowerCase() : "";
+    if (email.includes("visitor") || user.is_anonymous) {
+        isVisitor = true;
+        currentDisplayName = "Visitor";
+    } else if (email.includes("ella")) {
+        isVisitor = false;
+        currentDisplayName = "Ella";
+    } else {
+        isVisitor = false;
+        currentDisplayName = "Leo";
+    }
+    const label = document.getElementById("nav-user-label");
+    if (label) {
+        label.textContent = isVisitor ? "Visitor (Read Only)" : currentDisplayName;
+    }
+}
+
+async function logout() {
+    await sb.auth.signOut();
+    location.reload();
+}
+
 async function apiHeaders() {
     const { data: { session } } = await sb.auth.getSession();
-    const token = session ? session.access_token : (currentSession ? currentSession.access_token : "");
+    const token = session ? session.access_token : "";
     return {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
     };
 }
 
-async function handleLogin() {
-    const rawInput = document.getElementById("login-email").value.trim().toLowerCase();
-    const password = document.getElementById("login-pass").value;
-    const msg = document.getElementById("auth-msg");
-    msg.textContent = "";
-
-    if (!rawInput || !password) {
-        msg.textContent = "Please enter both username/email and password.";
-        return;
-    }
-
-    const email = rawInput.includes("@") ? rawInput : `${rawInput}@tracker.local`;
-
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) {
-        msg.textContent = error.message;
-        return;
-    }
-
-    currentSession = data.session;
-    document.getElementById("auth-overlay").style.display = "none";
-    updateUserDisplay(data.user);
-    setupRealtime();
-    await loadApartments();
-}
-
-async function handleLogout() {
-    await sb.auth.signOut();
-    location.reload();
-}
-
-function updateUserDisplay(user) {
-    if (!user) return;
-    const name = user.user_metadata?.display_name || user.email.split("@")[0].toUpperCase();
-    currentDisplayName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-    isVisitor = (currentDisplayName.toLowerCase() === "visitor" || (user.email && user.email.toLowerCase().startsWith("visitor")));
-    
-    const displayEl = document.getElementById("current-user-display");
-    const formsGrid = document.getElementById("entry-forms-grid");
-    const visitorBanner = document.getElementById("visitor-banner");
-
-    if (isVisitor) {
-        displayEl.innerHTML = `<span style="color: #64748b; font-weight: 700;">👁️ Visitor (Read-Only)</span>`;
-        if (formsGrid) formsGrid.style.display = "none";
-        if (visitorBanner) visitorBanner.style.display = "block";
-    } else {
-        displayEl.textContent = currentDisplayName;
-        if (formsGrid) formsGrid.style.display = "grid";
-        if (visitorBanner) visitorBanner.style.display = "none";
-    }
-}
-
-// Realtime subscriptions for both apartments and apartment_votes
+// -------------------------------------------------------------
+// Realtime Sync
+// -------------------------------------------------------------
 function setupRealtime() {
-    // 1. Listen for apartment changes
-    sb.channel("public:apartments")
-      .on("postgres_changes", { event: "*", schema: "public", table: "apartments" }, () => {
-          loadApartments();
-      })
-      .subscribe((status) => {
-          const el = document.getElementById("sync-status");
-          if (status === "SUBSCRIBED") {
-              el.textContent = "⚡ Realtime Connected";
-              el.style.color = "#10b981";
-          }
-      });
-
-    sb.channel("public:apartment_votes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "apartment_votes" }, (payload) => {
-          const voteRecord = payload.new;
-          if (voteRecord && voteRecord.apartment_id) {
-              handleIncomingVote(voteRecord.apartment_id, voteRecord.user_name, voteRecord.vote);
-          }
-      })
+    sb.channel("apartments_realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "apartments" }, () => loadApartments())
+      .on("postgres_changes", { event: "*", schema: "public", table: "apartment_votes" }, () => loadApartments())
       .subscribe();
 }
 
-function handleIncomingVote(apartmentId, userName, voteTier) {
-    const apt = apartmentsCache[apartmentId];
-    if (!apt) return;
-
-    if (!apt.votes) apt.votes = {};
-    apt.votes[userName] = voteTier;
-    apt.is_mutual_match = (apt.votes["Leo"] === "love" && apt.votes["Ella"] === "love");
-
-    updateCardUI(apt);
-    updateMutualMatchesCount();
-    updateMapPins();
-
-    if (document.getElementById("compare-modal").classList.contains("open")) {
-        renderComparisonModalContent();
+// -------------------------------------------------------------
+// Area Mesh Gradients & Stylized Placeholders
+// -------------------------------------------------------------
+function getDistrictMeshStyle(district) {
+    const gradients = [
+        "radial-gradient(circle at 85% 15%, #4338ca 0%, transparent 60%), radial-gradient(circle at 15% 85%, #06b6d4 0%, transparent 60%), #1e1b4b",
+        "radial-gradient(circle at 85% 15%, #065f46 0%, transparent 60%), radial-gradient(circle at 15% 85%, #10b981 0%, transparent 60%), #022c22",
+        "radial-gradient(circle at 85% 15%, #6b21a8 0%, transparent 60%), radial-gradient(circle at 15% 85%, #ec4899 0%, transparent 60%), #3b0764",
+        "radial-gradient(circle at 85% 15%, #9a3412 0%, transparent 60%), radial-gradient(circle at 15% 85%, #f59e0b 0%, transparent 60%), #451a03",
+        "radial-gradient(circle at 85% 15%, #1e40af 0%, transparent 60%), radial-gradient(circle at 15% 85%, #3b82f6 0%, transparent 60%), #0f172a"
+    ];
+    let hash = 0;
+    for (let i = 0; i < (district || "").length; i++) {
+        hash = district.charCodeAt(i) + ((hash << 5) - hash);
     }
+    return gradients[Math.abs(hash) % gradients.length];
 }
 
-async function castVote(apartmentId, voteTier) {
-    if (isVisitor) {
-        alert("Visitor account has read-only access. Only Leo and Ella can cast votes.");
+function handleImageError(imgEl, district) {
+    const parent = imgEl.parentElement;
+    if (!parent) return;
+    parent.innerHTML = `
+        <div class="media-placeholder" style="background: ${getDistrictMeshStyle(district)}">
+            <svg class="placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2"/>
+                <path d="M3 9h18M9 21V9"/>
+            </svg>
+        </div>
+    `;
+}
+
+// -------------------------------------------------------------
+// Main Grid & Listings Loader
+// -------------------------------------------------------------
+async function loadApartments() {
+    const headers = await apiHeaders();
+    const [sortBy, desc] = document.getElementById("sort-select").value.split("-");
+    const res = await fetch(`/api/apartments?sort_by=${sortBy}&desc=${desc}`, { headers });
+    if (res.status === 401) {
+        document.getElementById("auth-overlay").style.display = "flex";
         return;
     }
-    const apt = apartmentsCache[apartmentId];
-    if (!apt) return;
+    const data = await res.json();
+    
+    // Flatten listings & index cache
+    apartmentsCache = {};
+    allApartmentsList = [];
+    const districtCounts = {};
 
-    if (!apt.votes) apt.votes = {};
-    const currentVote = apt.votes[currentDisplayName];
-    const newVote = currentVote === voteTier ? "neutral" : voteTier;
-    apt.votes[currentDisplayName] = newVote;
-    apt.is_mutual_match = (apt.votes["Leo"] === "love" && apt.votes["Ella"] === "love");
-
-    updateCardUI(apt);
-    updateMutualMatchesCount();
-    updateMapPins();
-
-    try {
-        await sb.from("apartment_votes").upsert({
-            apartment_id: apartmentId,
-            user_name: currentDisplayName,
-            vote: newVote,
-            updated_at: new Date().toISOString()
-        }, { onConflict: "apartment_id,user_name" });
-    } catch (e) {
-        console.warn("Direct Supabase vote upsert notice:", e);
-    }
-
-    try {
-        const headers = await apiHeaders();
-        await fetch("/api/apartments/vote", {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ apartment_id: apartmentId, vote: newVote })
+    for (const [area, items] of Object.entries(data)) {
+        districtCounts[area] = items.length;
+        items.forEach(apt => {
+            apartmentsCache[apt.id] = apt;
+            allApartmentsList.push(apt);
         });
-    } catch (e) {
-        console.warn("API vote endpoint notice:", e);
-    }
-}
-
-function updateCardUI(apt) {
-    const card = document.getElementById(`apt-card-${apt.id}`);
-    if (!card) return;
-
-    if (apt.is_mutual_match) {
-        card.classList.add("mutual-match");
-        if (!card.querySelector(".mutual-badge")) {
-            const badge = document.createElement("div");
-            badge.className = "mutual-badge";
-            badge.innerHTML = `<span>💚</span> Mutual Match! Book Viewing`;
-            const headerContainer = card.querySelector(".apt-header-badges");
-            if (headerContainer) headerContainer.prepend(badge);
-        }
-    } else {
-        card.classList.remove("mutual-match");
-        const existingBadge = card.querySelector(".mutual-badge");
-        if (existingBadge) existingBadge.remove();
     }
 
-    const userVote = apt.votes?.[currentDisplayName];
-    const btnLove = card.querySelector(".btn-vote-love");
-    const btnNeutral = card.querySelector(".btn-vote-neutral");
-    const btnPass = card.querySelector(".btn-vote-pass");
-
-    if (btnLove) btnLove.className = `vote-btn btn-vote-love ${userVote === 'love' ? 'active-love' : ''}`;
-    if (btnNeutral) btnNeutral.className = `vote-btn btn-vote-neutral ${userVote === 'neutral' ? 'active-neutral' : ''}`;
-    if (btnPass) btnPass.className = `vote-btn btn-vote-pass ${userVote === 'pass' ? 'active-pass' : ''}`;
-
-    const summary = card.querySelector(".vote-status-summary");
-    if (summary) {
-        const leo = formatVoteEmoji(apt.votes?.["Leo"]);
-        const ella = formatVoteEmoji(apt.votes?.["Ella"]);
-        summary.innerHTML = `<span>Leo: ${leo}</span><span>•</span><span>Ella: ${ella}</span>`;
-    }
-}
-
-function formatVoteEmoji(vote) {
-    if (vote === "love") return "💚 Love";
-    if (vote === "neutral") return "🟡 Neutral";
-    if (vote === "pass") return "🔴 Pass";
-    return "⏳ None";
-}
-
-function updateMutualMatchesCount() {
-    const all = Object.values(apartmentsCache);
-    const mutualCount = all.filter(a => a.is_mutual_match).length;
-    const badge = document.getElementById("mutual-count-badge");
-    if (badge) {
-        badge.innerHTML = mutualCount > 0 ? `✨ <strong>${mutualCount}</strong> Mutual Matches found!` : "";
-    }
-}
-
-// -------------------------------------------------------------
-// Phase 4: Leaflet Map & HSL Clustering Logic
-// -------------------------------------------------------------
-
-function toggleMapView() {
-    const mapSection = document.getElementById("map-section");
-    const btn = document.getElementById("btn-toggle-map");
+    renderBentoStats(allApartmentsList, districtCounts);
+    renderDistrictFilterPills(districtCounts);
+    renderCardsGrid();
 
     if (isMapVisible) {
-        mapSection.classList.remove("visible");
-        btn.classList.remove("active");
-        btn.innerHTML = `🗺️ <span>Open Map View</span>`;
-        isMapVisible = false;
-    } else {
-        mapSection.classList.add("visible");
-        btn.classList.add("active");
-        btn.innerHTML = `🗺️ <span>Hide Map View</span>`;
-        isMapVisible = true;
-        initOrUpdateMap();
-    }
-}
-
-function initOrUpdateMap() {
-    if (!leafletMap) {
-        // Initialize Leaflet map centered in Helsinki
-        leafletMap = L.map('leaflet-map', {
-            center: [60.185, 24.94],
-            zoom: 12,
-            zoomControl: true
-        });
-
-        // CARTO Voyager Tile Layer with User API Key
-        const cartoKey = "cb1_51x1_1_2bcf3364a1a5671df78c167b";
-        L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoKey}`, {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
-        }).addTo(leafletMap);
-
-        // MarkerCluster Group
-        clusterGroup = L.markerClusterGroup({
-            maxClusterRadius: 35,
-            disableClusteringAtZoom: 14,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
-            zoomToBoundsOnClick: true
-        });
-        leafletMap.addLayer(clusterGroup);
-    }
-
-    setTimeout(() => {
-        leafletMap.invalidateSize();
         updateMapPins();
-    }, 200);
+    }
+    updateDock();
 }
 
-function updateMapPins() {
-    if (!clusterGroup) return;
-    clusterGroup.clearLayers();
+function renderBentoStats(apts, districtCounts) {
+    const totalCount = apts.length;
+    document.getElementById("stat-total-count").textContent = totalCount;
+    document.getElementById("stat-districts-count").textContent = `Across ${Object.keys(districtCounts).length} Helsinki districts`;
 
-    const apts = Object.values(apartmentsCache);
-    if (apts.length === 0) return;
+    if (totalCount > 0) {
+        const sumPrice = apts.reduce((acc, a) => acc + (a.price || 0), 0);
+        const sumSize = apts.reduce((acc, a) => acc + (a.size_m2 || 0), 0);
+        const avgRate = sumSize > 0 ? (sumPrice / sumSize).toFixed(1) : 0;
+        document.getElementById("stat-avg-sqm").innerHTML = `${avgRate} <span style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted);">€/m²</span>`;
+        
+        const diff = (avgRate - 23.5).toFixed(1);
+        const diffText = diff <= 0 ? `${Math.abs(diff)} € below Hki avg` : `${diff} € above Hki avg`;
+        document.getElementById("stat-avg-sub").textContent = diffText;
+    } else {
+        document.getElementById("stat-avg-sqm").innerHTML = `0 <span style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted);">€/m²</span>`;
+        document.getElementById("stat-avg-sub").textContent = "No data yet";
+    }
+}
 
-    const bounds = [];
+function renderDistrictFilterPills(counts) {
+    const bar = document.getElementById("district-filter-bar");
+    bar.innerHTML = "";
 
-    apts.forEach(apt => {
-        const lat = apt.lat || apt.latitude || apt.specs?.lat;
-        const lon = apt.lon || apt.longitude || apt.specs?.lon;
-        if (!lat || !lon) return;
+    const allPill = document.createElement("button");
+    allPill.className = `filter-pill ${activeDistrictFilter === 'ALL' ? 'active' : ''}`;
+    allPill.textContent = `All Districts (${allApartmentsList.length})`;
+    allPill.onclick = () => {
+        activeDistrictFilter = "ALL";
+        renderDistrictFilterPills(counts);
+        renderCardsGrid();
+    };
+    bar.appendChild(allPill);
 
-        bounds.push([lat, lon]);
+    for (const [area, count] of Object.entries(counts)) {
+        const pill = document.createElement("button");
+        pill.className = `filter-pill ${activeDistrictFilter === area ? 'active' : ''}`;
+        pill.textContent = `${area} (${count})`;
+        pill.onclick = () => {
+            activeDistrictFilter = area;
+            renderDistrictFilterPills(counts);
+            renderCardsGrid();
+        };
+        bar.appendChild(pill);
+    }
+}
 
-        // Pin styling based on status and mutual match state
-        const isMatch = apt.is_mutual_match === true;
-        let pinClass = "pin-interested";
-        let iconContent = "📍";
+function renderCardsGrid() {
+    const grid = document.getElementById("apartments-grid");
+    grid.innerHTML = "";
 
-        if (isMatch) {
-            pinClass = "pin-match";
-            iconContent = "💚";
-        } else if (apt.status?.startsWith("Applied")) {
-            pinClass = "pin-applied";
-            iconContent = "✓";
-        } else if (apt.status?.startsWith("Viewing")) {
-            pinClass = "pin-viewing";
-            iconContent = "👁";
-        } else if (apt.status?.startsWith("Not")) {
-            pinClass = "pin-not";
-            iconContent = "✕";
-        }
+    let filtered = allApartmentsList;
+    if (activeDistrictFilter !== "ALL") {
+        filtered = allApartmentsList.filter(a => a.asuinalue === activeDistrictFilter);
+    }
 
-        const customIcon = L.divIcon({
-            className: `custom-pin ${pinClass}`,
-            html: `<span>${iconContent}</span>`,
-            iconSize: isMatch ? [32, 32] : [26, 26],
-            iconAnchor: isMatch ? [16, 16] : [13, 13],
-            popupAnchor: [0, -14]
-        });
+    document.getElementById("listings-counter-text").textContent = `Showing ${filtered.length} of ${allApartmentsList.length} saved apartments`;
 
-        const marker = L.marker([lat, lon], { icon: customIcon });
-
-        const leoVote = formatVoteEmoji(apt.votes?.["Leo"]);
-        const ellaVote = formatVoteEmoji(apt.votes?.["Ella"]);
-
-        const popupHtml = `
-            <div class="popup-card">
-                <div class="popup-title">${escapeHtml(apt.title)}</div>
-                <div style="font-size: 0.8rem; color: #64748b;">📍 ${escapeHtml(apt.asuinalue)}</div>
-                
-                <div class="popup-specs">
-                    <span>${apt.price} €/kk</span> • <span>${apt.size_m2} m²</span> • <span>${apt.eur_per_m2} €/m²</span>
-                </div>
-
-                <div style="font-size: 0.75rem; margin-top: 4px;">
-                    <div><strong>Status:</strong> ${escapeHtml(apt.status)}</div>
-                    <div><strong>Votes:</strong> Leo (${leoVote}) • Ella (${ellaVote})</div>
-                    ${isMatch ? `<div style="color: #10b981; font-weight: 800; margin-top: 2px;">💚 Mutual Match!</div>` : ''}
-                </div>
-
-                <button class="popup-jump-btn" onclick="jumpToApartmentCard(${apt.id})">
-                    📍 Jump to Listing Card
-                </button>
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                <div style="font-size: 2.5rem; margin-bottom: 12px;">🏡</div>
+                <h3 style="margin: 0 0 8px 0; color: var(--text-primary);">No apartments in this district</h3>
+                <p style="margin: 0;">Paste a Vuokraovi link above to add your first apartment here.</p>
             </div>
         `;
+        return;
+    }
 
-        marker.bindPopup(popupHtml);
-        clusterGroup.addLayer(marker);
+    filtered.forEach(apt => {
+        grid.appendChild(createApartmentCard(apt));
     });
-
-    if (bounds.length > 0 && leafletMap) {
-        leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-    }
 }
 
-function jumpToApartmentCard(aptId) {
-    const card = document.getElementById(`apt-card-${aptId}`);
-    if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.classList.remove("card-highlight-active");
-        void card.offsetWidth; // trigger reflow
-        card.classList.add("card-highlight-active");
-        setTimeout(() => card.classList.remove("card-highlight-active"), 2200);
-    }
-}
+function createApartmentCard(apt) {
+    const isMatch = apt.is_mutual_match === true;
+    const author = apt.added_by || "Leo";
+    const authorEmoji = author.toLowerCase() === "ella" ? "🌸" : "⚡";
+    const statusClass = apt.status ? `status-${apt.status.split(' ')[0]}` : "status-Interested";
+    const isCompared = selectedForComparison.has(apt.id);
 
-// -------------------------------------------------------------
-// Phase 3: Dossier Accordion Helpers
-// -------------------------------------------------------------
+    const card = document.createElement("article");
+    card.className = `apartment-card ${isMatch ? 'mutual-match' : ''}`;
+    card.id = `apt-card-${apt.id}`;
 
-function toggleDossier(aptId) {
-    const body = document.getElementById(`dossier-body-${aptId}`);
-    const arrow = document.getElementById(`dossier-arrow-${aptId}`);
-    if (!body || !arrow) return;
+    // 16:9 Image or Mesh Placeholder
+    const imageUrl = apt.image_url || (apt.specs && apt.specs.image_url) || "";
+    let mediaHtml = "";
 
-    if (body.classList.contains("open")) {
-        body.classList.remove("open");
-        arrow.classList.remove("open");
-        openedDossiers.delete(aptId);
+    if (imageUrl) {
+        mediaHtml = `
+            <img src="${escapeHtml(imageUrl)}" referrerpolicy="no-referrer" alt="${escapeHtml(apt.title)}" class="card-photo" loading="lazy" data-apt-id="${apt.id}" onerror="handleImageError(this, '${escapeHtml(apt.asuinalue)}')">
+        `;
     } else {
-        body.classList.add("open");
-        arrow.classList.add("open");
-        openedDossiers.add(aptId);
+        mediaHtml = `
+            <div class="media-placeholder" style="background: ${getDistrictMeshStyle(apt.asuinalue)}">
+                <svg class="placeholder-icon" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2"/>
+                    <path d="M3 9h18M9 21V9"/>
+                </svg>
+            </div>
+        `;
     }
+
+    // Voting Section
+    const userVote = apt.votes?.[currentDisplayName];
+    const leoVote = formatVoteEmoji(apt.votes?.["Leo"]);
+    const ellaVote = formatVoteEmoji(apt.votes?.["Ella"]);
+
+    const votingHtml = isVisitor ? `
+        <div class="vote-section">
+            <div class="vote-header">
+                <span>Partner Votes</span>
+                <div class="vote-status-summary">
+                    <span>Leo: ${leoVote}</span>
+                    <span>•</span>
+                    <span>Ella: ${ellaVote}</span>
+                </div>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center; font-style: italic;">
+                Voting reserved for Leo & Ella
+            </div>
+        </div>
+    ` : `
+        <div class="vote-section">
+            <div class="vote-header">
+                <span>Your Vote:</span>
+                <div class="vote-status-summary">
+                    <span>Leo: ${leoVote}</span>
+                    <span>•</span>
+                    <span>Ella: ${ellaVote}</span>
+                </div>
+            </div>
+            <div class="vote-btn-row">
+                <button class="vote-btn btn-vote-love ${userVote === 'love' ? 'active-love' : ''}" onclick="castVote(${apt.id}, 'love')">
+                    💚 Love
+                </button>
+                <button class="vote-btn btn-vote-neutral ${userVote === 'neutral' ? 'active-neutral' : ''}" onclick="castVote(${apt.id}, 'neutral')">
+                    🟡 Neutral
+                </button>
+                <button class="vote-btn btn-vote-pass ${userVote === 'pass' ? 'active-pass' : ''}" onclick="castVote(${apt.id}, 'pass')">
+                    🔴 Pass
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Notes
+    const notesHtml = apt.notes ? `<div class="notes-box">📝 ${escapeHtml(apt.notes)}</div>` : "";
+
+    // Action buttons
+    const safeAptJson = encodeURIComponent(JSON.stringify(apt));
+    const actionsHtml = isVisitor ? '' : `
+        <div class="card-actions-row">
+            <button class="btn-card-action" onclick="editApt('${safeAptJson}')">✏️ Edit</button>
+            <button class="btn-card-action danger" onclick="deleteApt(${apt.id})">🗑️ Delete</button>
+        </div>
+    `;
+
+    card.innerHTML = `
+        <div class="card-media-wrapper">
+            ${mediaHtml}
+
+            <!-- Floating Top-Left Badges -->
+            <div class="media-overlay-top-left">
+                ${isMatch ? `<div class="glass-badge mutual-glass-badge"><span>💚</span> Mutual Match!</div>` : ''}
+                <div class="glass-badge status-pill ${statusClass}">${apt.status}</div>
+            </div>
+
+            <!-- Floating Top-Right Badges -->
+            <div class="media-overlay-top-right">
+                <label class="glass-badge compare-pill" title="Compare side-by-side">
+                    <input type="checkbox" ${isCompared ? 'checked' : ''} onchange="toggleCompare(${apt.id}, this.checked)">
+                    <span>Compare</span>
+                </label>
+                <div class="glass-badge" style="font-size: 0.72rem;">
+                    <span>${authorEmoji}</span> <span>${author}</span>
+                </div>
+            </div>
+
+            <!-- Floating Bottom-Left District Badge -->
+            <div class="media-overlay-bottom-left">
+                <div class="glass-badge" style="background: rgba(0,0,0,0.65); color: #ffffff; border-color: rgba(255,255,255,0.2);">
+                    📍 ${escapeHtml(apt.asuinalue)}
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <a href="${apt.url}" target="_blank" class="card-title-link" title="${escapeHtml(apt.title)}">
+                ${escapeHtml(apt.title)} ↗
+            </a>
+
+            <!-- High-Craft Tabular Metric Bar -->
+            <div class="metric-bar tabular-nums">
+                <div class="metric-item">
+                    <span class="metric-label">Rent</span>
+                    <span class="metric-value price">${apt.price.toLocaleString('fi-FI')} €/kk</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Size</span>
+                    <span class="metric-value">${apt.size_m2} m²</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Rate</span>
+                    <span class="metric-value">${apt.eur_per_m2} €/m²</span>
+                </div>
+            </div>
+
+            ${votingHtml}
+
+            <!-- Dossier / Brain Accordion -->
+            ${buildDossierHtml(apt)}
+
+            ${notesHtml}
+
+            ${actionsHtml}
+        </div>
+    `;
+
+    return card;
 }
 
+// -------------------------------------------------------------
+// Dossier & Evaluation Accordion Builder
+// -------------------------------------------------------------
 function buildDossierHtml(apt) {
     const specs = apt.specs || {};
-    // Clean any legacy placeholder pros or false-con water fees
     const pros = (specs.pros || []).filter(p => !p.includes("Viihtyisä ja vakiintunut helsinkiläinen asuinalue"));
     const cons = (specs.cons || []).filter(c => !c.toLowerCase().includes("vesimaksu"));
     const isOpen = openedDossiers.has(apt.id);
 
-    let floorBadge = '🏢 Kerrostieto -';
+    let floorBadge = '🏢 Kerros: -';
     if (specs.floor_str) {
         if (specs.floor && (specs.floor > 50 || specs.floor < 1)) {
-            floorBadge = '🏢 Kerrostieto -';
+            floorBadge = '🏢 Kerros: -';
         } else if (/^\d{3,}/.test(specs.floor_str)) {
-            floorBadge = '🏢 Kerrostieto -';
+            floorBadge = '🏢 Kerros: -';
         } else {
-            floorBadge = `🏢 Kerros: ${escapeHtml(specs.floor_str)}`;
+            floorBadge = `🏢 ${escapeHtml(specs.floor_str)} krs`;
         }
     }
-    const elevatorBadge = specs.has_elevator === true ? '🛗 Hissi' : specs.has_elevator === false ? 'Ei hissiä' : '🛗 Hissi -';
-    const waterBadge = specs.water_included ? '💧 Vesi sisältyy' : (specs.water_fee ? `💧 ${escapeHtml(specs.water_fee)}` : '💧 Vesi -');
-    const petsBadge = specs.pets_allowed === true ? '🐾 Lemmikit OK' : specs.pets_allowed === false ? '🚫 Ei lemmikkejä' : (specs.pets_allowed ? `🐾 ${escapeHtml(specs.pets_allowed)}` : '🐾 Lemmikit -');
+    const elevatorBadge = specs.has_elevator === true ? '🛗 Hissi' : specs.has_elevator === false ? 'Ei hissiä' : '🛗 -';
+    const waterBadge = specs.water_included ? '💧 Vesi sisältyy' : (specs.water_fee ? `💧 ${escapeHtml(specs.water_fee)}` : '💧 Vesi: -');
+    const petsBadge = specs.pets_allowed === true ? '🐾 Lemmikit OK' : specs.pets_allowed === false ? '🚫 Ei lemmikkejä' : (specs.pets_allowed ? `🐾 ${escapeHtml(specs.pets_allowed)}` : '🐾 -');
     const balconyBadge = specs.balcony_type ? `🌅 ${escapeHtml(specs.balcony_type)}` : (specs.has_balcony ? '🌅 Parveke' : 'Ei parveketta');
     const saunaBadge = specs.sauna_type ? `🧖 ${escapeHtml(specs.sauna_type)}` : (specs.has_sauna ? '🧖 Oma sauna' : 'Ei saunaa');
 
@@ -1404,8 +2220,8 @@ function buildDossierHtml(apt) {
     return `
         <div class="dossier-box">
             <button class="dossier-header-btn" onclick="toggleDossier(${apt.id})">
-                <span style="display: flex; align-items: center; gap: 8px;">
-                    <span>🧠</span> <strong>Dossier & Evaluation</strong>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                    <span>🧠</span> <strong>Dossier & Brain</strong>
                 </span>
                 <div class="dossier-counts">
                     <span class="dossier-badge-pro">+${pros.length}</span>
@@ -1434,13 +2250,13 @@ function buildDossierHtml(apt) {
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     ${pros.length > 0 ? `
                         <div>
-                            <div style="font-size: 0.75rem; font-weight: 700; color: var(--pro-text); margin-bottom: 4px; text-transform: uppercase;">
+                            <div style="font-size: 0.72rem; font-weight: 700; color: #10b981; margin-bottom: 4px; text-transform: uppercase;">
                                 Pros (${pros.length})
                             </div>
                             <ul class="eval-list">
                                 ${pros.map(p => `
                                     <li class="eval-item pro">
-                                        <span class="eval-icon">+</span>
+                                        <span style="font-weight: 800;">+</span>
                                         <span>${escapeHtml(p)}</span>
                                     </li>
                                 `).join('')}
@@ -1450,13 +2266,13 @@ function buildDossierHtml(apt) {
 
                     ${cons.length > 0 ? `
                         <div>
-                            <div style="font-size: 0.75rem; font-weight: 700; color: var(--con-text); margin-bottom: 4px; text-transform: uppercase;">
+                            <div style="font-size: 0.72rem; font-weight: 700; color: #f43f5e; margin-bottom: 4px; text-transform: uppercase;">
                                 Cons & Considerations (${cons.length})
                             </div>
                             <ul class="eval-list">
                                 ${cons.map(c => `
                                     <li class="eval-item con">
-                                        <span class="eval-icon">-</span>
+                                        <span style="font-weight: 800;">-</span>
                                         <span>${escapeHtml(c)}</span>
                                     </li>
                                 `).join('')}
@@ -1469,252 +2285,369 @@ function buildDossierHtml(apt) {
     `;
 }
 
-// -------------------------------------------------------------
-// Load Apartments & Main Grid Rendering
-// -------------------------------------------------------------
-
-async function loadApartments() {
-    const headers = await apiHeaders();
-    const [sortBy, desc] = document.getElementById("sort-select").value.split("-");
-    const res = await fetch(`/api/apartments?sort_by=${sortBy}&desc=${desc}`, { headers });
-    if (res.status === 401) {
-        document.getElementById("auth-overlay").style.display = "flex";
-        return;
+function toggleDossier(id) {
+    const body = document.getElementById(`dossier-body-${id}`);
+    const arrow = document.getElementById(`dossier-arrow-${id}`);
+    if (!body) return;
+    if (openedDossiers.has(id)) {
+        openedDossiers.delete(id);
+        body.classList.remove("open");
+        if (arrow) arrow.classList.remove("open");
+    } else {
+        openedDossiers.add(id);
+        body.classList.add("open");
+        if (arrow) arrow.classList.add("open");
     }
-    const data = await res.json();
-    const container = document.getElementById("groups");
-    const jumpBar = document.getElementById("district-jump-bar");
-    container.innerHTML = "";
-    jumpBar.innerHTML = "";
-    apartmentsCache = {};
+}
 
-    const observerOptions = { root: null, rootMargin: "-100px 0px -50% 0px", threshold: 0 };
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const id = entry.target.id;
-                document.querySelectorAll(".district-pill").forEach(p => p.classList.remove("active"));
-                const activePill = document.getElementById(`pill-${id}`);
-                if (activePill) {
-                    activePill.classList.add("active");
-                    activePill.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-                }
-            }
-        });
-    }, observerOptions);
-
-    for (const [area, items] of Object.entries(data)) {
-        const safeAreaId = "area-" + area.replace(/\s+/g, "-").toLowerCase();
-
-        const pill = document.createElement("button");
-        pill.className = "district-pill";
-        pill.id = `pill-${safeAreaId}`;
-        pill.textContent = `${area} (${items.length})`;
-        pill.onclick = () => {
-            const target = document.getElementById(safeAreaId);
-            if (target) {
-                const y = target.getBoundingClientRect().top + window.scrollY - 70;
-                window.scrollTo({ top: y, behavior: "smooth" });
-            }
-        };
-        jumpBar.appendChild(pill);
-
-        const section = document.createElement("div");
-        section.className = "district-section";
-        section.id = safeAreaId;
-
-        const total = items.length;
-        const header = document.createElement("div");
-        header.className = "district-header";
-        header.innerHTML = `<h2>${area}</h2> <span class="slide-counter" id="counter-${safeAreaId}">[ 1 / ${total} ]</span>`;
-        section.appendChild(header);
-
-        const track = document.createElement("div");
-        track.className = "snap-track";
-
-        track.addEventListener("scroll", () => {
-            const cards = track.children;
-            let closestIndex = 0;
-            let minDiff = Infinity;
-            for (let i = 0; i < cards.length; i++) {
-                const diff = Math.abs(cards[i].getBoundingClientRect().left - track.getBoundingClientRect().left);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    closestIndex = i;
-                }
-            }
-            document.getElementById(`counter-${safeAreaId}`).textContent = `[ ${closestIndex + 1} / ${total} ]`;
-        });
-
-        items.forEach((apt) => {
-            apartmentsCache[apt.id] = apt;
-            const statusClass = apt.status.startsWith("Applied") ? "status-Applied" : apt.status.startsWith("Viewing") ? "status-Viewing" : apt.status.startsWith("Not") ? "status-Not" : "status-Interested";
-            const notesHtml = apt.notes ? `<div class="notes-box">📝 ${escapeHtml(apt.notes)}</div>` : "";
-            const author = apt.added_by || "Leo";
-            const authorClass = author.toLowerCase() === "ella" ? "author-badge-ella" : "author-badge-leo";
-            const safeAptJson = encodeURIComponent(JSON.stringify(apt));
-            
-            const isMatch = apt.is_mutual_match === true;
-            const userVote = apt.votes?.[currentDisplayName];
-            const leoVoteText = formatVoteEmoji(apt.votes?.["Leo"]);
-            const ellaVoteText = formatVoteEmoji(apt.votes?.["Ella"]);
-            const isCompared = selectedForComparison.has(apt.id);
-
-            const votingSectionHtml = isVisitor ? `
-                <div class="vote-section">
-                    <div class="vote-header">
-                        <span>Partner Votes:</span>
-                        <div class="vote-status-summary">
-                            <span>Leo: ${leoVoteText}</span>
-                            <span>•</span>
-                            <span>Ella: ${ellaVoteText}</span>
-                        </div>
-                    </div>
-                    <div style="font-size: 0.75rem; color: var(--msg-color); text-align: center; font-style: italic; padding: 2px 0;">
-                        Voting reserved for Leo & Ella
-                    </div>
-                </div>
-            ` : `
-                <div class="vote-section">
-                    <div class="vote-header">
-                        <span>Your Vote:</span>
-                        <div class="vote-status-summary">
-                            <span>Leo: ${leoVoteText}</span>
-                            <span>•</span>
-                            <span>Ella: ${ellaVoteText}</span>
-                        </div>
-                    </div>
-                    <div class="vote-btn-row">
-                        <button class="vote-btn btn-vote-love ${userVote === 'love' ? 'active-love' : ''}" onclick="castVote(${apt.id}, 'love')">
-                            💚 Love
-                        </button>
-                        <button class="vote-btn btn-vote-neutral ${userVote === 'neutral' ? 'active-neutral' : ''}" onclick="castVote(${apt.id}, 'neutral')">
-                            🟡 Neutral
-                        </button>
-                        <button class="vote-btn btn-vote-pass ${userVote === 'pass' ? 'active-pass' : ''}" onclick="castVote(${apt.id}, 'pass')">
-                            🔴 Pass
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            const actionsHtml = isVisitor ? '' : `
-                <div class="apt-actions">
-                    <button class="btn-edit" onclick="editApt('${safeAptJson}')">Edit</button>
-                    <button class="btn-del" onclick="deleteApt(${apt.id})">Delete</button>
-                </div>
-            `;
-
-            const card = document.createElement("div");
-            card.className = `snap-card ${isMatch ? 'mutual-match' : ''}`;
-            card.id = `apt-card-${apt.id}`;
-            card.innerHTML = `
-                <div class="apt-info">
-                    <div class="card-top-row">
-                        <div class="apt-header-badges">
-                            ${isMatch ? `<div class="mutual-badge"><span>💚</span> Mutual Match! Book Viewing</div>` : ''}
-                            <span class="status-badge ${statusClass}">${apt.status}</span>
-                            <span class="author-badge ${authorClass}">Added by ${author}</span>
-                        </div>
-                        <label class="compare-label" title="Select to compare (max 3)">
-                            <input type="checkbox" ${isCompared ? 'checked' : ''} onchange="toggleCompare(${apt.id}, this.checked)">
-                            Compare
-                        </label>
-                    </div>
-
-                    <a href="${apt.url}" target="_blank" class="apt-title-link">${escapeHtml(apt.title)}</a>
-                    <div class="apt-stats">
-                        <span class="badge bg-spec">${apt.price} €/kk</span>
-                        <span class="badge bg-spec">${apt.size_m2} m²</span>
-                        <span class="badge bg-spec">${apt.eur_per_m2} €/m²</span>
-                    </div>
-
-                    <!-- Partner Voting / Visitor Indicator -->
-                    ${votingSectionHtml}
-
-                    <!-- Phase 3: Rules-Based Apartment Dossier / Brain Accordion -->
-                    ${buildDossierHtml(apt)}
-
-                    ${notesHtml}
-                </div>
-                ${actionsHtml}
-            `;
-            track.appendChild(card);
-        });
-
-        section.appendChild(track);
-        container.appendChild(section);
-        observer.observe(section);
-    }
-    if (jumpBar.firstChild) jumpBar.firstChild.classList.add("active");
-    updateMutualMatchesCount();
-    updateDock();
-    if (isMapVisible) {
-        updateMapPins();
-    }
+function formatVoteEmoji(vote) {
+    if (vote === "love") return "💚 Love";
+    if (vote === "neutral") return "🟡 Neutral";
+    if (vote === "pass") return "🔴 Pass";
+    return "⏳ None";
 }
 
 function escapeHtml(str) {
-    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    if (!str) return "";
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
-function editApt(encodedJson) {
-    if (isVisitor) {
-        alert("Visitor account is read-only. Editing listings is disabled.");
+// -------------------------------------------------------------
+// Interactive Leaflet Map (Free CARTO & OpenStreetMap, No API Key Required)
+// -------------------------------------------------------------
+function toggleMapView() {
+    const mapSection = document.getElementById("map-section");
+    const btn = document.getElementById("map-toggle-btn") || document.getElementById("btn-toggle-map");
+
+    if (isMapVisible) {
+        if (mapSection) mapSection.classList.remove("visible");
+        if (btn) {
+            btn.classList.remove("active");
+            btn.innerHTML = `🗺️ <span>Map View</span>`;
+        }
+        isMapVisible = false;
+    } else {
+        if (mapSection) mapSection.classList.add("visible");
+        if (btn) {
+            btn.classList.add("active");
+            btn.innerHTML = `🗺️ <span>Hide Map</span>`;
+        }
+        isMapVisible = true;
+        initOrUpdateMap();
+    }
+}
+
+function initOrUpdateMap() {
+    if (typeof L === 'undefined') {
+        console.warn("Leaflet library not loaded yet.");
         return;
     }
-    const apt = JSON.parse(decodeURIComponent(encodedJson));
-    document.getElementById("m-id").value = apt.id;
-    document.getElementById("m-url").value = apt.url;
-    document.getElementById("m-title").value = apt.title;
-    document.getElementById("m-area").value = apt.asuinalue;
-    document.getElementById("m-price").value = apt.price;
-    document.getElementById("m-size").value = apt.size_m2;
-    document.getElementById("m-status").value = apt.status || "Interested";
-    document.getElementById("m-notes").value = apt.notes || "";
-    document.getElementById("form-title").textContent = `Editing: ${apt.title}`;
-    document.getElementById("m-save-btn").textContent = "Update Listing";
-    const cancelBtn = document.getElementById("m-cancel-btn");
-    if (cancelBtn) cancelBtn.style.display = "block";
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (!leafletMap) {
+        leafletMap = L.map('leaflet-map', {
+            center: [60.190, 24.940],
+            zoom: 12,
+            zoomControl: true
+        });
+
+        // Initialize free basemap tiles with automatic dark/light theme
+        updateMapTileTheme();
+
+        // MarkerCluster Group
+        clusterGroup = L.markerClusterGroup({
+            maxClusterRadius: 40,
+            disableClusteringAtZoom: 15,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true
+        });
+        markerClusterGroup = clusterGroup;
+        leafletMap.addLayer(clusterGroup);
+    }
+
+    setTimeout(() => {
+        if (leafletMap) {
+            leafletMap.invalidateSize();
+            updateMapPins();
+        }
+    }, 200);
 }
 
-function cancelEdit() {
-    ["m-id", "m-url", "m-title", "m-area", "m-price", "m-size", "m-notes"].forEach(id => {
+function updateMapTileTheme() {
+    if (!leafletMap || typeof L === 'undefined') return;
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    if (currentTileLayer) {
+        leafletMap.removeLayer(currentTileLayer);
+    }
+
+    // User's official Carto.com API key
+    const cartoKey = "cb1_51x1_1_2bcf3364a1a5671df78c167b";
+    
+    // Official Carto dashboard Raster (PNG) tile endpoints
+    const cartoUrl = isDark 
+        ? `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${cartoKey}`
+        : `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoKey}`;
+
+    const osmFallbackUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+    currentTileLayer = L.tileLayer(cartoUrl, {
+        maxZoom: 20,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    });
+
+    // Auto-fallback: If Carto API key is invalid, missing, expired or blocked, fall back immediately to OpenStreetMap
+    let hasFallenBack = false;
+    currentTileLayer.on('tileerror', function() {
+        if (!hasFallenBack) {
+            hasFallenBack = true;
+            console.warn("CARTO basemap tile error with current API key. Automatically falling back to OpenStreetMap.");
+            if (leafletMap && currentTileLayer) {
+                leafletMap.removeLayer(currentTileLayer);
+                currentTileLayer = L.tileLayer(osmFallbackUrl, {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(leafletMap);
+            }
+        }
+    });
+
+    currentTileLayer.addTo(leafletMap);
+}
+
+function updateMapPins() {
+    if (!clusterGroup || typeof L === 'undefined') return;
+    clusterGroup.clearLayers();
+
+    const apts = allApartmentsList.length > 0 ? allApartmentsList : Object.values(apartmentsCache);
+    if (apts.length === 0) return;
+
+    const bounds = [];
+
+    apts.forEach(apt => {
+        const rawLat = apt.latitude != null ? apt.latitude : ((apt.specs && apt.specs.lat != null) ? apt.specs.lat : apt.lat);
+        const rawLon = apt.longitude != null ? apt.longitude : ((apt.specs && apt.specs.lon != null) ? apt.specs.lon : apt.lon);
+        const lat = parseFloat(rawLat);
+        const lon = parseFloat(rawLon);
+        if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) return;
+
+        bounds.push([lat, lon]);
+
+        // Pin styling based on status and mutual match state
+        const isMatch = apt.is_mutual_match === true;
+        let pinClass = "pin-interested";
+        let iconContent = "🏠";
+
+        if (isMatch) {
+            pinClass = "pin-match";
+            iconContent = "💚";
+        } else if (apt.status?.startsWith("Applied")) {
+            pinClass = "pin-applied";
+            iconContent = "✓";
+        } else if (apt.status?.startsWith("Viewing")) {
+            pinClass = "pin-viewing";
+            iconContent = "👁";
+        } else if (apt.status?.startsWith("Not")) {
+            pinClass = "pin-not";
+            iconContent = "✕";
+        }
+
+        const customIcon = L.divIcon({
+            className: `custom-pin ${pinClass}`,
+            html: `<span>${iconContent}</span>`,
+            iconSize: isMatch ? [34, 34] : [28, 28],
+            iconAnchor: isMatch ? [17, 17] : [14, 14],
+            popupAnchor: [0, -14]
+        });
+
+        const marker = L.marker([lat, lon], { icon: customIcon });
+
+        const leoVote = formatVoteEmoji(apt.votes?.["Leo"]);
+        const ellaVote = formatVoteEmoji(apt.votes?.["Ella"]);
+
+        const popupHtml = `
+            <div class="popup-card">
+                ${isMatch ? '<div class="glass-badge mutual-glass-badge" style="font-size:0.75rem; padding:3px 8px; margin-bottom:4px;">💚 Mutual Match</div>' : ''}
+                <div class="popup-title">${escapeHtml(apt.title)}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">📍 ${escapeHtml(apt.asuinalue)}</div>
+                
+                <div class="popup-specs">
+                    <span>${apt.price} €/kk</span> • <span>${apt.size_m2} m²</span> • <span>${apt.eur_per_m2} €/m²</span>
+                </div>
+
+                <div style="font-size: 0.78rem; margin: 6px 0; color: var(--text-secondary);">
+                    <div><strong>Status:</strong> ${escapeHtml(apt.status)}</div>
+                    <div><strong>Votes:</strong> Leo (${leoVote}) • Ella (${ellaVote})</div>
+                </div>
+
+                <button class="popup-jump-btn" onclick="jumpToApartmentCard(${apt.id})">
+                    Jump to Listing Card ↓
+                </button>
+            </div>
+        `;
+
+        marker.bindPopup(popupHtml);
+        clusterGroup.addLayer(marker);
+    });
+
+    if (bounds.length > 0 && leafletMap) {
+        if (bounds.length === 1) {
+            leafletMap.setView(bounds[0], 14);
+        } else {
+            leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+        }
+    }
+}
+
+function jumpToApartmentCard(aptId) {
+    const card = document.getElementById(`apt-card-${aptId}`);
+    if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.borderColor = 'var(--brand-primary)';
+        card.style.boxShadow = '0 0 30px rgba(99, 102, 241, 0.6)';
+        setTimeout(() => {
+            card.style.borderColor = '';
+            card.style.boxShadow = '';
+        }, 2200);
+    }
+}
+
+const jumpToApartment = jumpToApartmentCard;
+
+// -------------------------------------------------------------
+// Voting Logic
+// -------------------------------------------------------------
+async function castVote(aptId, vote) {
+    if (isVisitor) {
+        alert("Visitor account is read-only. Voting is reserved for Leo & Ella.");
+        return;
+    }
+    const headers = await apiHeaders();
+    await fetch("/api/apartments/vote", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ apartment_id: aptId, vote })
+    });
+    loadApartments();
+}
+
+// -------------------------------------------------------------
+// Scrape & Manual Input
+// -------------------------------------------------------------
+async function submitScrape() {
+    if (isVisitor) {
+        alert("Visitor account is read-only. Auto-fetching is disabled.");
+        return;
+    }
+    const status = document.getElementById("s-status");
+    const btn = document.getElementById("scrape-btn");
+    const url = document.getElementById("s-url").value.trim();
+    const fallback_asuinalue = document.getElementById("s-area").value.trim();
+
+    if (!url) {
+        status.style.color = "#f43f5e";
+        status.textContent = "Please paste a Vuokraovi link first.";
+        return;
+    }
+
+    status.style.color = "var(--text-muted)";
+    status.textContent = "Scraping photos, extracting specs & geocoding via HSL...";
+    btn.textContent = "Fetching...";
+    btn.disabled = true;
+
+    const headers = await apiHeaders();
+    try {
+        const res = await fetch("/api/apartments/scrape", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ url, fallback_asuinalue })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            status.style.color = "#f43f5e";
+            status.textContent = data.detail?.[0]?.msg || data.detail || "Scrape failed—use Manual.";
+            return;
+        }
+        status.style.color = "#10b981";
+        status.textContent = `Saved to ${data.asuinalue}! Plotted with image on map.`;
+        document.getElementById("s-url").value = "";
+        document.getElementById("s-area").value = "";
+        loadApartments();
+    } catch (err) {
+        status.style.color = "#f43f5e";
+        status.textContent = "Network error while connecting to server.";
+    } finally {
+        btn.innerHTML = '<span>Fetch Listing</span> <span>↗</span>';
+        btn.disabled = false;
+    }
+}
+
+function openManualModal() {
+    if (isVisitor) {
+        alert("Visitor account is read-only. Adding listings is disabled.");
+        return;
+    }
+    document.getElementById("form-title").textContent = "Add Apartment Manually";
+    document.getElementById("m-save-btn").textContent = "Save Listing";
+    document.getElementById("m-status-msg").textContent = "";
+    ["m-id", "m-url", "m-image", "m-title", "m-area", "m-price", "m-size", "m-notes"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = "";
     });
     document.getElementById("m-status").value = "Interested";
-    document.getElementById("form-title").textContent = "Manual Entry / Edit";
-    document.getElementById("m-save-btn").textContent = "Save Apartment";
-    const cancelBtn = document.getElementById("m-cancel-btn");
-    if (cancelBtn) cancelBtn.style.display = "none";
+    document.getElementById("manual-modal").classList.add("open");
+}
+
+function closeManualModal() {
+    document.getElementById("manual-modal").classList.remove("open");
+}
+
+function editApt(encodedJson) {
+    if (isVisitor) {
+        alert("Visitor account is read-only. Editing is disabled.");
+        return;
+    }
+    const apt = JSON.parse(decodeURIComponent(encodedJson));
+    document.getElementById("m-id").value = apt.id;
+    document.getElementById("m-url").value = apt.url || "";
+    document.getElementById("m-image").value = apt.image_url || (apt.specs && apt.specs.image_url) || "";
+    document.getElementById("m-title").value = apt.title || "";
+    document.getElementById("m-area").value = apt.asuinalue || "";
+    document.getElementById("m-price").value = apt.price || "";
+    document.getElementById("m-size").value = apt.size_m2 || "";
+    document.getElementById("m-status").value = apt.status || "Interested";
+    document.getElementById("m-notes").value = apt.notes || "";
+    document.getElementById("form-title").textContent = `Edit: ${apt.title}`;
+    document.getElementById("m-save-btn").textContent = "Update Listing";
+    document.getElementById("m-status-msg").textContent = "";
+    document.getElementById("manual-modal").classList.add("open");
 }
 
 async function submitManual() {
     if (isVisitor) {
-        alert("Visitor account is read-only. Adding listings is disabled.");
+        alert("Visitor account is read-only.");
         return;
     }
     const status = document.getElementById("m-status-msg");
     const idVal = document.getElementById("m-id")?.value;
     const url = document.getElementById("m-url").value.trim();
+    const image_url = document.getElementById("m-image").value.trim();
     const title = document.getElementById("m-title").value.trim();
     const asuinalue = document.getElementById("m-area").value.trim();
     const price = parseFloat(document.getElementById("m-price").value);
     const size_m2 = parseFloat(document.getElementById("m-size").value);
     const aptStatus = document.getElementById("m-status").value;
     const notes = document.getElementById("m-notes").value.trim();
+
     if (!url || !title || !asuinalue || isNaN(price) || price <= 0 || isNaN(size_m2) || size_m2 <= 0) {
-        status.style.color = "#f87171";
-        status.textContent = "All fields are required and Price / Size must be greater than 0.";
+        status.style.color = "#f43f5e";
+        status.textContent = "URL, Title, Area, Price, and Size are required (> 0).";
         return;
     }
+
     const headers = await apiHeaders();
-    const payload = { url, title, asuinalue, price, size_m2, status: aptStatus, notes };
-    if (idVal) {
-        payload.id = parseInt(idVal);
-    }
+    const payload = { url, title, asuinalue, price, size_m2, status: aptStatus, notes, image_url };
+    if (idVal) payload.id = parseInt(idVal);
+
     const res = await fetch("/api/apartments/manual", {
         method: "POST",
         headers,
@@ -1722,53 +2655,17 @@ async function submitManual() {
     });
     const data = await res.json();
     if (!res.ok) {
-        status.style.color = "#f87171";
-        status.textContent = data.detail?.[0]?.msg || data.detail || "Invalid input.";
+        status.style.color = "#f43f5e";
+        status.textContent = data.detail?.[0]?.msg || data.detail || "Submission failed.";
         return;
     }
-    status.style.color = "#4ade80";
-    status.textContent = idVal ? "Updated listing!" : "Saved & geocoded to map!";
-    cancelEdit();
-    loadApartments();
-}
-
-async function submitScrape() {
-    if (isVisitor) {
-        alert("Visitor account is read-only. Auto-fetching listings is disabled.");
-        return;
-    }
-    const status = document.getElementById("s-status");
-    const url = document.getElementById("s-url").value.trim();
-    const fallback_asuinalue = document.getElementById("s-area").value.trim();
-    if (!url) {
-        status.style.color = "#f87171";
-        status.textContent = "Please paste a Vuokraovi link first.";
-        return;
-    }
-    status.style.color = "#94a3b8";
-    status.textContent = "Fetching listing, geocoding via HSL...";
-    const headers = await apiHeaders();
-    const res = await fetch("/api/apartments/scrape", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ url, fallback_asuinalue })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-        status.style.color = "#f87171";
-        status.textContent = data.detail?.[0]?.msg || data.detail || "Scrape failed—use Option A.";
-        return;
-    }
-    status.style.color = "#4ade80";
-    status.textContent = `Saved to ${data.asuinalue}! Plotted on map.`;
-    document.getElementById("s-url").value = "";
-    document.getElementById("s-area").value = "";
+    closeManualModal();
     loadApartments();
 }
 
 async function deleteApt(id) {
     if (isVisitor) {
-        alert("Visitor account is read-only. Deleting listings is disabled.");
+        alert("Visitor account is read-only. Deleting is disabled.");
         return;
     }
     if (!confirm("Are you sure you want to delete this apartment?")) return;
@@ -1780,15 +2677,14 @@ async function deleteApt(id) {
 }
 
 // -------------------------------------------------------------
-// Comparison Dock & Modal Logic (Phase 2 + Phase 3 specs)
+// Comparison Side-by-Side Logic
 // -------------------------------------------------------------
-
 function toggleCompare(id, isChecked) {
     if (isChecked) {
         if (selectedForComparison.size >= 3) {
             alert("You can select up to 3 apartments for side-by-side comparison.");
-            const checkbox = document.querySelector(`#apt-card-${id} input[type="checkbox"]`);
-            if (checkbox) checkbox.checked = false;
+            const cb = document.querySelector(`#apt-card-${id} input[type="checkbox"]`);
+            if (cb) cb.checked = false;
             return;
         }
         selectedForComparison.add(id);
@@ -1800,7 +2696,7 @@ function toggleCompare(id, isChecked) {
 
 function clearComparison() {
     selectedForComparison.clear();
-    document.querySelectorAll('.compare-label input[type="checkbox"]').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.compare-pill input[type="checkbox"]').forEach(cb => cb.checked = false);
     updateDock();
     closeComparisonModal();
 }
@@ -1835,7 +2731,11 @@ function handleModalBackdropClick(e) {
 }
 
 document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeComparisonModal();
+    if (e.key === "Escape") {
+        closeComparisonModal();
+        closeManualModal();
+        closeQuickImageModal();
+    }
 });
 
 function toggleDifferencesOnly(showDiffsOnly) {
@@ -1855,16 +2755,14 @@ function renderComparisonModalContent() {
     const apts = Array.from(selectedForComparison).map(id => apartmentsCache[id]).filter(Boolean);
 
     if (apts.length < 2) {
-        container.innerHTML = `<p style="text-align: center; color: var(--msg-color);">Please select at least 2 apartments to compare.</p>`;
+        container.innerHTML = `<p style="text-align: center; color: var(--text-muted);">Please select at least 2 apartments to compare.</p>`;
         return;
     }
 
     const prices = apts.map(a => a.price);
     const minPrice = Math.min(...prices);
-
     const eurPerM2s = apts.map(a => a.eur_per_m2);
     const minEurPerM2 = Math.min(...eurPerM2s);
-
     const showDiffsOnly = document.getElementById("diff-toggle")?.checked || false;
 
     const specs = [
@@ -1944,7 +2842,7 @@ function renderComparisonModalContent() {
             render: (a) => {
                 const leo = formatVoteEmoji(a.votes?.["Leo"]);
                 const ella = formatVoteEmoji(a.votes?.["Ella"]);
-                const matchHtml = a.is_mutual_match ? `<div class="mutual-badge" style="margin-top: 6px; font-size: 0.75rem;">💚 Mutual Match</div>` : '';
+                const matchHtml = a.is_mutual_match ? `<div class="glass-badge mutual-glass-badge" style="margin-top: 6px; font-size: 0.72rem;">💚 Mutual Match</div>` : '';
                 return `<div>Leo: <strong>${leo}</strong></div><div>Ella: <strong>${ella}</strong></div>${matchHtml}`;
             },
             isDifferent: () => {
@@ -1960,7 +2858,7 @@ function renderComparisonModalContent() {
                 const c = (s.cons || []).length;
                 return `
                     <div style="font-weight:700;">+${p} Pros / -${c} Cons</div>
-                    <div style="font-size: 0.75rem; color: var(--msg-color); margin-top: 4px;">${escapeHtml(s.district_vibe || '')}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">${escapeHtml(s.district_vibe || '')}</div>
                 `;
             },
             isDifferent: () => new Set(apts.map(a => `${(a.specs?.pros || []).length}-${(a.specs?.cons || []).length}`)).size > 1
@@ -1971,14 +2869,14 @@ function renderComparisonModalContent() {
         <table class="comparison-table">
             <thead>
                 <tr>
-                    <th class="col-header" style="width: 170px;">Specification</th>
+                    <th style="width: 170px; background: var(--bg-surface-elevated);">Feature</th>
                     ${apts.map(a => `
-                        <th class="col-header">
-                            ${a.is_mutual_match ? `<div class="mutual-badge" style="margin-bottom: 6px;">💚 Mutual Match</div>` : ''}
-                            <a href="${a.url}" target="_blank" style="font-size: 1.05rem; display: block; margin-bottom: 4px;">
+                        <th style="background: var(--bg-surface-elevated);">
+                            ${a.is_mutual_match ? `<div class="glass-badge mutual-glass-badge" style="margin-bottom: 6px;">💚 Mutual Match</div>` : ''}
+                            <a href="${a.url}" target="_blank" style="font-size: 1rem; color: var(--text-primary); text-decoration: none; font-weight: 700; display: block; margin-bottom: 4px;">
                                 ${escapeHtml(a.title)} ↗
                             </a>
-                            <span style="font-size: 0.85rem; color: var(--msg-color); font-weight: normal;">📍 ${escapeHtml(a.asuinalue)}</span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">📍 ${escapeHtml(a.asuinalue)}</span>
                         </th>
                     `).join('')}
                 </tr>
@@ -2005,7 +2903,9 @@ function renderComparisonModalContent() {
     container.innerHTML = html;
 }
 
-// Auto-check session on load
+// -------------------------------------------------------------
+// Auto Session Check on Boot
+// -------------------------------------------------------------
 sb.auth.getSession().then(({ data: { session } }) => {
     if (session) {
         document.getElementById("auth-overlay").style.display = "none";
@@ -2019,4 +2919,3 @@ sb.auth.getSession().then(({ data: { session } }) => {
 </script>
 </body>
 </html>
-
