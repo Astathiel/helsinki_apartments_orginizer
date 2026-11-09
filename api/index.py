@@ -929,6 +929,7 @@ class ManualApartmentInput(BaseModel):
     size_m2: float = Field(..., gt=0)
     notes: str = ""
     status: str = "Interested"
+    image_url: str | None = None
     lat: float | None = None
     lon: float | None = None
     latitude: float | None = None
@@ -999,6 +1000,39 @@ class VuokraoviScraper:
         if price_val <= 0 or size_val <= 0:
             raise ValueError("Could not extract price or size. Use manual entry (Option A).")
 
+        # Extract main listing image URL
+        image_url = ""
+        og_img = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "og:image"})
+        if og_img and og_img.get("content"):
+            cand = og_img["content"].strip()
+            if cand.startswith("http"):
+                image_url = cand
+
+        if not image_url:
+            tw_img = soup.find("meta", attrs={"name": "twitter:image"}) or soup.find("meta", property="twitter:image")
+            if tw_img and tw_img.get("content"):
+                cand = tw_img["content"].strip()
+                if cand.startswith("http"):
+                    image_url = cand
+
+        if not image_url:
+            link_img = soup.find("link", rel="image_src")
+            if link_img and link_img.get("href"):
+                cand = link_img["href"].strip()
+                if cand.startswith("http"):
+                    image_url = cand
+
+        if not image_url:
+            for img in soup.find_all("img"):
+                src = img.get("src") or img.get("data-src") or ""
+                if src and any(k in src.lower() for k in ("vuokraovi", "etuovi", "images", "cdn", "cloudfront")) and not any(k in src.lower() for k in ("logo", "icon", "blank", "tracking", "pixel")):
+                    if src.startswith("//"):
+                        image_url = f"https:{src}"
+                        break
+                    elif src.startswith("http"):
+                        image_url = src
+                        break
+
         # Phase 4: Geocode via HSL Digitransit Pelias API
         lat, lon = geocode_address_hsl(title, asuinalue)
 
@@ -1013,6 +1047,8 @@ class VuokraoviScraper:
             lat=lat,
             lon=lon
         )
+        if image_url:
+            dossier["image_url"] = image_url
 
         return {
             "url": url,
@@ -1022,6 +1058,7 @@ class VuokraoviScraper:
             "size_m2": size_val,
             "notes": "",
             "status": "Interested",
+            "image_url": image_url,
             "lat": lat,
             "lon": lon,
             "latitude": lat,
@@ -1137,6 +1174,9 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
                 item["specs"]["lat"] = lat
                 item["specs"]["lon"] = lon
 
+        # Ensure image_url is available
+        item["image_url"] = item.get("image_url") or (item.get("specs") or {}).get("image_url") or ""
+
         grouped.setdefault(area, []).append(item)
 
     sort_key = sort_by if sort_by in ("price", "size_m2", "eur_per_m2") else "price"
@@ -1166,6 +1206,9 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         lat=lat,
         lon=lon
     )
+    img = (payload.image_url or "").strip()
+    if img:
+        dossier["image_url"] = img
 
     data = {
         "url": payload.url,
@@ -1178,6 +1221,7 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         "added_by": user["display_name"],
         "latitude": lat,
         "longitude": lon,
+        "image_url": img or None,
         "specs": dossier
     }
 
@@ -1188,7 +1232,15 @@ def add_manual(payload: ManualApartmentInput, authorization: str = Header(None))
         else:
             res = sb.table("apartments").upsert(data, on_conflict="url").execute()
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        if "image_url" in str(exc).lower():
+            data.pop("image_url", None)
+            if payload.id:
+                data["id"] = payload.id
+                res = sb.table("apartments").upsert(data, on_conflict="id").execute()
+            else:
+                res = sb.table("apartments").upsert(data, on_conflict="url").execute()
+        else:
+            raise HTTPException(status_code=400, detail=str(exc))
 
     return {"status": "saved", "data": res.data}
 
@@ -1202,6 +1254,7 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
         extracted["added_by"] = user["display_name"]
         sb = get_supabase()
         
+        img = extracted.get("image_url", "")
         db_payload = {
             "url": extracted["url"],
             "title": extracted["title"],
@@ -1213,11 +1266,47 @@ def add_scraped(payload: ScrapeApartmentInput, authorization: str = Header(None)
             "added_by": extracted["added_by"],
             "latitude": extracted.get("latitude") if extracted.get("latitude") is not None else extracted.get("lat"),
             "longitude": extracted.get("longitude") if extracted.get("longitude") is not None else extracted.get("lon"),
+            "image_url": img or None,
             "specs": extracted.get("specs", {})
         }
-        res = sb.table("apartments").upsert(db_payload, on_conflict="url").execute()
+        try:
+            res = sb.table("apartments").upsert(db_payload, on_conflict="url").execute()
+        except Exception as exc:
+            if "image_url" in str(exc).lower():
+                db_payload.pop("image_url", None)
+                res = sb.table("apartments").upsert(db_payload, on_conflict="url").execute()
+            else:
+                raise exc
 
         return {"status": "saved", "data": res.data, "asuinalue": extracted["asuinalue"]}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+class ApartmentImageInput(BaseModel):
+    apartment_id: int
+    image_url: str = Field(..., max_length=1500)
+
+@app.post("/apartments/image")
+@app.post("/api/apartments/image")
+def update_apartment_image(payload: ApartmentImageInput, authorization: str = Header(None)):
+    user = get_current_user(authorization)
+    require_editor(user)
+    sb = get_supabase()
+    clean_img = payload.image_url.strip()
+
+    try:
+        apt_res = sb.table("apartments").select("specs").eq("id", payload.apartment_id).execute()
+        specs = (apt_res.data[0].get("specs") if apt_res.data else {}) or {}
+        specs["image_url"] = clean_img
+        update_data = {"specs": specs, "image_url": clean_img}
+        try:
+            res = sb.table("apartments").update(update_data).eq("id", payload.apartment_id).execute()
+        except Exception as exc:
+            if "image_url" in str(exc).lower():
+                res = sb.table("apartments").update({"specs": specs}).eq("id", payload.apartment_id).execute()
+            else:
+                raise exc
+        return {"status": "saved", "image_url": clean_img, "data": res.data}
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
