@@ -136,22 +136,23 @@ RE_FLOOR_DOUBLE = re.compile(r"(?:kerros(?:ta|kset)?|krs\.?)\s*:?\s*(\d{1,2})\s*
 RE_FLOOR_DOUBLE_REV = re.compile(r"\b(\d{1,2})\s*/\s*(\d{1,2})\s*(?:krs|kerros)\b", re.IGNORECASE)
 RE_FLOOR_SINGLE = re.compile(r"(?:kerros(?:ta|kset)?|krs\.?)\s*:?\s*(\d{1,2})\b", re.IGNORECASE)
 RE_FLOOR_SINGLE_REV = re.compile(r"\b(\d{1,2})\s*\.\s*(?:kerros|krs)\b", re.IGNORECASE)
+RE_FLOOR_GROUND = re.compile(r"\b(?:alin\s+kerros|maantaso(?:kerros)?|pohjakerros)\b", re.IGNORECASE)
 
-RE_ELEVATOR_YES = re.compile(r"(?:talossa\s+(?:on\s+)?hissi|hissi\s*:\s*(?:on|kyllä)|on\s+hissi|\bhissitalo\b)", re.IGNORECASE)
-RE_ELEVATOR_NO = re.compile(r"(?:ei\s+hissiä|hissi\s*:\s*ei|ei\s+hissi\b)", re.IGNORECASE)
-RE_WATER_INCL = re.compile(r"vesi(?:maksu)?\s+(?:sisältyy|sis\.)(?:\s+vuokraan)?", re.IGNORECASE)
-RE_WATER_FEE = re.compile(r"vesimaksu[:\s]*(\d{1,3}(?:[.,]\d{1,2})?)\s*€(?:\s*/\s*(?:hlö|kk|kuukausi|hlö/kk))?", re.IGNORECASE)
-RE_PETS_YES = re.compile(r"lemmik(?:it|kieläimet)\s+(?:ovat\s+)?sallittu", re.IGNORECASE)
-RE_PETS_NO = re.compile(r"(?:ei\s+lemmikkejä|lemmikit\s+kielletty|lemmikkikielto)", re.IGNORECASE)
-RE_PETS_AGREEMENT = re.compile(r"lemmik(?:it|eistä)\s+sopimuksen\s+mukaan", re.IGNORECASE)
-RE_BALCONY_GLAZED = re.compile(r"(?:lasitettu(?:\s+oma)?\s+parveke|parveke\s*:\s*lasitettu)", re.IGNORECASE)
+RE_ELEVATOR_YES = re.compile(r"(?:hissi\s*:?\s*(?:on|kyllä|on\s+hissi)|talossa\s+(?:on\s+)?hissi|taloyhti(?:össä|ön)\s+(?:on\s+)?hissi|\bhissitalo\b|\bhissillinen\b)", re.IGNORECASE)
+RE_ELEVATOR_NO = re.compile(r"(?:hissi\s*:?\s*(?:ei|ei\s+ole)|ei\s+hissiä|ei\s+hissi\b|\bhissitön\b)", re.IGNORECASE)
+RE_WATER_INCL = re.compile(r"(?:vesi(?:maksu(?:ennakko)?)?\s*:?\s*(?:sisältyy|sis\.)(?:\s+vuokraan)?|sis(?:ältyy|\.)\s+vesi\b|vesi\s*:\s*0\s*€)", re.IGNORECASE)
+RE_WATER_FEE = re.compile(r"vesi(?:maksu(?:ennakko)?)?[:\s]*(\d{1,3}(?:[.,]\d{1,2})?)\s*€(?:\s*/\s*(?:hlö|kk|kuukausi|hlö/kk|hlö/kuukausi))?", re.IGNORECASE)
+RE_PETS_YES = re.compile(r"\blemmik(?:it|kieläimet)?\s*:?\s*(?:ovat\s+)?(?:sallittu(?:ja)?|ok|tervetulleita|kyllä)\b", re.IGNORECASE)
+RE_PETS_NO = re.compile(r"\b(?:ei\s+lemmikkejä|lemmikit\s+kielletty|lemmikkikielto|lemmik(?:it)?\s*:?\s*ei)\b", re.IGNORECASE)
+RE_PETS_AGREEMENT = re.compile(r"\blemmik(?:it|eistä)?\s*:?\s*(?:sopimuksen\s+mukaan|sovitaan\s+erikseen|neuvoteltavissa)\b", re.IGNORECASE)
+RE_BALCONY_GLAZED = re.compile(r"(?:lasitettu(?:\s+oma)?\s+parveke|parveke\s*:?\s*lasitettu)", re.IGNORECASE)
 RE_BALCONY_FRENCH = re.compile(r"ranskalainen\s+parveke", re.IGNORECASE)
-RE_BALCONY_TERRACE = re.compile(r"(?:oma\s+terassi|asuntopiha|terassi|maantasoterassi)", re.IGNORECASE)
-RE_BALCONY_ANY = re.compile(r"(?<!ei\s)(?<!ei\somaa\s)parveke", re.IGNORECASE)
-RE_BALCONY_NO = re.compile(r"(?:ei\s+parveketta|ei\s+omaa\s+parveketta)", re.IGNORECASE)
+RE_BALCONY_TERRACE = re.compile(r"(?:oma\s+terassi|asuntopiha|terassi|maantasoterassi|pihapatio)", re.IGNORECASE)
+RE_BALCONY_ANY = re.compile(r"(?<!ei\s)(?<!ei\somaa\s)\bparveke\b", re.IGNORECASE)
+RE_BALCONY_NO = re.compile(r"\b(?:ei\s+parveketta|ei\s+omaa\s+parveketta|parveke\s*:?\s*ei)\b", re.IGNORECASE)
 RE_SAUNA_OWN = re.compile(r"(?:oma\s+sauna|sauna\s*:\s*(?:on|kyllä|oma))", re.IGNORECASE)
-RE_SAUNA_BLDG = re.compile(r"(?:taloyhti(?:össä|ön)\s+sauna|talosauna|sauna\s*:\s*taloyhtiössä)", re.IGNORECASE)
-RE_SAUNA_NO = re.compile(r"(?:ei\s+saunaa|sauna\s*:\s*ei)", re.IGNORECASE)
+RE_SAUNA_BLDG = re.compile(r"(?:taloyhti(?:össä|ön)\s+sauna|talosauna|sauna\s*:\s*(?:taloyhtiössä|taloyhtiön))", re.IGNORECASE)
+RE_SAUNA_NO = re.compile(r"\b(?:ei\s+saunaa|sauna\s*:?\s*ei)\b", re.IGNORECASE)
 
 # Notification / Listing page deep heuristics
 RE_CONDITION = re.compile(r"kunto\s*:?\s*([\w\s\-]+?)(?:,|\.|\n|$)", re.IGNORECASE)
@@ -610,7 +611,7 @@ HELSINKI_DISTRICT_PROFILES = {
     }
 }
 
-def extract_specs_from_text(text: str) -> dict:
+def extract_specs_from_soup_and_text(soup: BeautifulSoup | None, text: str) -> dict:
     specs = {
         "floor": None,
         "total_floors": None,
@@ -635,81 +636,229 @@ def extract_specs_from_text(text: str) -> dict:
         "free_immediately": None,
     }
 
-    # Strict floor extraction (requires 'kerros' or 'krs', enforces max 50 floors)
-    floor_match = RE_FLOOR_DOUBLE.search(text) or RE_FLOOR_DOUBLE_REV.search(text)
-    if floor_match:
-        f = int(floor_match.group(1))
-        tf = int(floor_match.group(2))
-        if 1 <= f <= 50 and 1 <= tf <= 50 and f <= tf:
-            specs["floor"] = f
-            specs["total_floors"] = tf
-            specs["floor_str"] = f"{f}/{tf}"
-    
+    kv = {}
+    if soup:
+        # Extract <dl> <dt> <dd> pairs
+        for dt in soup.find_all("dt"):
+            dd = dt.find_next_sibling("dd")
+            if dd:
+                k = dt.get_text(" ", strip=True).lower()
+                v = dd.get_text(" ", strip=True)
+                kv[k] = v
+
+        # Extract <tr> <th> <td> table rows
+        for tr in soup.find_all("tr"):
+            th = tr.find(["th", "td"])
+            tds = tr.find_all("td")
+            if th and len(tds) >= 1:
+                k = th.get_text(" ", strip=True).lower()
+                v = tds[-1].get_text(" ", strip=True)
+                kv[k] = v
+
+        # Extract info cards or label-value components
+        for el in soup.find_all(class_=re.compile(r"(info|detail|spec|feature|row|item)", re.IGNORECASE)):
+            texts = [t.strip() for t in el.stripped_strings if t.strip()]
+            if len(texts) == 2:
+                kv[texts[0].lower()] = texts[1]
+
+    # 1. Floor Extraction (KV first, then full text)
+    for k, v in kv.items():
+        if "kerros" in k or "krs" in k:
+            m = re.search(r"(\d{1,2})\s*/\s*(\d{1,2})", v)
+            if m:
+                f, tf = int(m.group(1)), int(m.group(2))
+                if 1 <= f <= 50 and 1 <= tf <= 50 and f <= tf:
+                    specs["floor"] = f
+                    specs["total_floors"] = tf
+                    specs["floor_str"] = f"{f}/{tf}"
+                    break
+            else:
+                m1 = re.search(r"\b(\d{1,2})\b", v)
+                if m1:
+                    f = int(m1.group(1))
+                    if 1 <= f <= 50:
+                        specs["floor"] = f
+                        specs["floor_str"] = f"{f}"
+                        break
+
     if not specs["floor"]:
-        single_floor = RE_FLOOR_SINGLE.search(text) or RE_FLOOR_SINGLE_REV.search(text)
-        if single_floor:
-            f = int(single_floor.group(1))
-            if 1 <= f <= 50:
+        floor_match = RE_FLOOR_DOUBLE.search(text) or RE_FLOOR_DOUBLE_REV.search(text)
+        if floor_match:
+            f, tf = int(floor_match.group(1)), int(floor_match.group(2))
+            if 1 <= f <= 50 and 1 <= tf <= 50 and f <= tf:
                 specs["floor"] = f
-                specs["floor_str"] = f"{f}"
+                specs["total_floors"] = tf
+                specs["floor_str"] = f"{f}/{tf}"
+        else:
+            single_floor = RE_FLOOR_SINGLE.search(text) or RE_FLOOR_SINGLE_REV.search(text)
+            if single_floor:
+                f = int(single_floor.group(1))
+                if 1 <= f <= 50:
+                    specs["floor"] = f
+                    specs["floor_str"] = f"{f}"
+            elif RE_FLOOR_GROUND.search(text):
+                specs["floor"] = 1
+                specs["floor_str"] = "1"
 
-    if RE_ELEVATOR_YES.search(text):
-        specs["has_elevator"] = True
-    elif RE_ELEVATOR_NO.search(text):
-        specs["has_elevator"] = False
+    # 2. Elevator Extraction
+    for k, v in kv.items():
+        if "hissi" in k:
+            v_low = v.lower()
+            if any(w in v_low for w in ("kyllä", "on", "true")):
+                specs["has_elevator"] = True
+                break
+            elif any(w in v_low for w in ("ei", "false")):
+                specs["has_elevator"] = False
+                break
 
-    if RE_WATER_INCL.search(text):
-        specs["water_included"] = True
-        specs["water_fee"] = "Sisältyy vuokraan"
-    else:
-        water_match = RE_WATER_FEE.search(text)
-        if water_match:
-            fee_val = water_match.group(1).strip().replace(" ", "").replace(",", ".")
-            specs["water_fee"] = f"{fee_val} €/hlö/kk"
-            specs["water_included"] = False
+    if specs["has_elevator"] is None:
+        if RE_ELEVATOR_YES.search(text):
+            specs["has_elevator"] = True
+        elif RE_ELEVATOR_NO.search(text):
+            specs["has_elevator"] = False
 
-    if RE_PETS_YES.search(text):
-        specs["pets_allowed"] = True
-    elif RE_PETS_NO.search(text):
-        specs["pets_allowed"] = False
-    elif RE_PETS_AGREEMENT.search(text):
-        specs["pets_allowed"] = "Sopimuksen mukaan"
+    # 3. Water Fee Extraction
+    for k, v in kv.items():
+        if "vesi" in k:
+            v_low = v.lower()
+            if any(w in v_low for w in ("sisältyy", "sis.", "0 €", "ei erillistä")):
+                specs["water_included"] = True
+                specs["water_fee"] = "Sisältyy vuokraan"
+                break
+            elif any(w in v_low for w in ("mittari", "kulutuksen")):
+                specs["water_included"] = False
+                specs["water_fee"] = "Mittarin mukaan"
+                break
+            else:
+                m = re.search(r"(\d{1,3}(?:[.,]\d{1,2})?)\s*€", v)
+                if m:
+                    fee = m.group(1).replace(",", ".")
+                    specs["water_fee"] = f"{fee} €/hlö/kk"
+                    specs["water_included"] = False
+                    break
 
-    if RE_BALCONY_GLAZED.search(text):
-        specs["has_balcony"] = True
-        specs["balcony_type"] = "Lasitettu parveke"
-    elif RE_BALCONY_FRENCH.search(text):
-        specs["has_balcony"] = True
-        specs["balcony_type"] = "Ranskalainen parveke"
-    elif RE_BALCONY_TERRACE.search(text):
-        specs["has_balcony"] = True
-        specs["balcony_type"] = "Oma terassi / piha"
-    elif RE_BALCONY_ANY.search(text):
-        specs["has_balcony"] = True
-        specs["balcony_type"] = "Parveke"
-    elif RE_BALCONY_NO.search(text):
-        specs["has_balcony"] = False
-        specs["balcony_type"] = "Ei parveketta"
+    if specs["water_fee"] is None and not specs["water_included"]:
+        if RE_WATER_INCL.search(text):
+            specs["water_included"] = True
+            specs["water_fee"] = "Sisältyy vuokraan"
+        else:
+            water_match = RE_WATER_FEE.search(text)
+            if water_match:
+                fee_val = water_match.group(1).strip().replace(" ", "").replace(",", ".")
+                specs["water_fee"] = f"{fee_val} €/hlö/kk"
+                specs["water_included"] = False
 
-    if RE_SAUNA_OWN.search(text):
-        specs["has_sauna"] = True
-        specs["sauna_type"] = "Oma sauna"
-    elif RE_SAUNA_BLDG.search(text):
-        specs["has_sauna"] = False
-        specs["sauna_type"] = "Taloyhtiön sauna"
-    elif RE_SAUNA_NO.search(text):
-        specs["has_sauna"] = False
-        specs["sauna_type"] = "Ei saunaa"
+    # 4. Pets Policy Extraction
+    for k, v in kv.items():
+        if "lemmik" in k:
+            v_low = v.lower()
+            if any(w in v_low for w in ("sallittu", "sallittuja", "kyllä", "on", "ok")):
+                specs["pets_allowed"] = True
+                break
+            elif any(w in v_low for w in ("kielletty", "ei")):
+                specs["pets_allowed"] = False
+                break
+            elif any(w in v_low for w in ("sopimuksen", "sovitaan", "neuvoteltavissa", "erikseen")):
+                specs["pets_allowed"] = "Sopimuksen mukaan"
+                break
 
-    # Listing page deep heuristics
+    if specs["pets_allowed"] is None:
+        if RE_PETS_YES.search(text):
+            specs["pets_allowed"] = True
+        elif RE_PETS_NO.search(text):
+            specs["pets_allowed"] = False
+        elif RE_PETS_AGREEMENT.search(text):
+            specs["pets_allowed"] = "Sopimuksen mukaan"
+
+    # 5. Balcony Extraction
+    for k, v in kv.items():
+        if "parveke" in k or "terassi" in k:
+            v_low = v.lower()
+            if any(w in v_low for w in ("ei", "ei parveketta")):
+                specs["has_balcony"] = False
+                specs["balcony_type"] = "Ei parveketta"
+                break
+            elif "lasitettu" in v_low:
+                specs["has_balcony"] = True
+                specs["balcony_type"] = "Lasitettu parveke"
+                break
+            elif "ranskalainen" in v_low:
+                specs["has_balcony"] = True
+                specs["balcony_type"] = "Ranskalainen parveke"
+                break
+            elif any(w in v_low for w in ("terassi", "piha", "asuntopiha")):
+                specs["has_balcony"] = True
+                specs["balcony_type"] = "Oma terassi / piha"
+                break
+            elif any(w in v_low for w in ("kyllä", "on", "parveke")):
+                specs["has_balcony"] = True
+                specs["balcony_type"] = "Parveke"
+                break
+
+    if specs["has_balcony"] is None:
+        if RE_BALCONY_NO.search(text):
+            specs["has_balcony"] = False
+            specs["balcony_type"] = "Ei parveketta"
+        elif RE_BALCONY_GLAZED.search(text):
+            specs["has_balcony"] = True
+            specs["balcony_type"] = "Lasitettu parveke"
+        elif RE_BALCONY_FRENCH.search(text):
+            specs["has_balcony"] = True
+            specs["balcony_type"] = "Ranskalainen parveke"
+        elif RE_BALCONY_TERRACE.search(text):
+            specs["has_balcony"] = True
+            specs["balcony_type"] = "Oma terassi / piha"
+        elif RE_BALCONY_ANY.search(text):
+            specs["has_balcony"] = True
+            specs["balcony_type"] = "Parveke"
+
+    # 6. Sauna Extraction
+    for k, v in kv.items():
+        if "sauna" in k:
+            v_low = v.lower()
+            if any(w in v_low for w in ("ei", "ei saunaa")):
+                specs["has_sauna"] = False
+                specs["sauna_type"] = "Ei saunaa"
+                break
+            elif any(w in v_low for w in ("oma", "kyllä", "on")):
+                specs["has_sauna"] = True
+                specs["sauna_type"] = "Oma sauna"
+                break
+            elif any(w in v_low for w in ("taloyhti", "talosauna", "yhteinen")):
+                specs["has_sauna"] = False
+                specs["sauna_type"] = "Taloyhtiön sauna"
+                break
+
+    if specs["has_sauna"] is None:
+        if RE_SAUNA_NO.search(text):
+            specs["has_sauna"] = False
+            specs["sauna_type"] = "Ei saunaa"
+        elif RE_SAUNA_OWN.search(text):
+            specs["has_sauna"] = True
+            specs["sauna_type"] = "Oma sauna"
+        elif RE_SAUNA_BLDG.search(text):
+            specs["has_sauna"] = False
+            specs["sauna_type"] = "Taloyhtiön sauna"
+
+    # 7. Additional heuristics (condition, year_built, appliances)
+    for k, v in kv.items():
+        if "kunto" in k and not specs["condition"]:
+            v_cap = v.strip().capitalize()
+            if any(w in v_cap.lower() for w in ("erinomainen", "uusi", "hyvä", "tyydyttävä", "remontoitu")):
+                specs["condition"] = v_cap
+        if any(w in k for w in ("rakennusvuosi", "valmistunut", "valmistumisvuosi")) and not specs["year_built"]:
+            m = re.search(r"\b(19\d\d|20\d\d)\b", v)
+            if m:
+                specs["year_built"] = int(m.group(1))
+
     cond_match = RE_CONDITION.search(text)
-    if cond_match:
+    if not specs["condition"] and cond_match:
         c_raw = cond_match.group(1).strip().capitalize()
         if any(w in c_raw.lower() for w in ("erinomainen", "uusi", "uutta vastaava", "hyvä", "tyydyttävä", "remontoitu", "vastaremontoitu")):
             specs["condition"] = c_raw
 
     yb_match = RE_YEAR_BUILT.search(text)
-    if yb_match:
+    if not specs["year_built"] and yb_match:
         specs["year_built"] = int(yb_match.group(1))
 
     if RE_DISHWASHER_NO.search(text):
@@ -737,6 +886,9 @@ def extract_specs_from_text(text: str) -> dict:
         specs["free_immediately"] = True
 
     return specs
+
+def extract_specs_from_text(text: str) -> dict:
+    return extract_specs_from_soup_and_text(None, text)
 
 def generate_dossier(price: float, size_m2: float, asuinalue: str, raw_text: str = "", extracted_specs: dict = None, lat: float = None, lon: float = None) -> dict:
     specs = extract_specs_from_text(raw_text) if raw_text else {}
@@ -1107,6 +1259,30 @@ class VuokraoviScraper:
             pass
         return ""
 
+    def scrape_specs_and_dossier(self, url: str, price: float, size_m2: float, asuinalue: str, lat: float = None, lon: float = None) -> dict:
+        try:
+            resp = httpx.get(url, headers=self.headers, follow_redirects=True, timeout=6.0)
+            if resp.status_code == 200:
+                sp = BeautifulSoup(resp.text, "html.parser")
+                text = sp.get_text(" ", strip=True)
+                specs_data = extract_specs_from_soup_and_text(sp, text)
+                img = self.extract_official_image(sp, resp.text)
+                dossier = generate_dossier(
+                    price=price,
+                    size_m2=size_m2,
+                    asuinalue=asuinalue,
+                    raw_text=text,
+                    extracted_specs=specs_data,
+                    lat=lat,
+                    lon=lon
+                )
+                if img:
+                    dossier["image_url"] = img
+                return dossier
+        except Exception:
+            pass
+        return {}
+
     def extract(self, url: str, fallback_area: str = "") -> dict:
         try:
             response = httpx.get(url, headers=self.headers, follow_redirects=True, timeout=15.0)
@@ -1144,8 +1320,8 @@ class VuokraoviScraper:
         # Phase 4: Geocode via HSL Digitransit Pelias API
         lat, lon = geocode_address_hsl(title, asuinalue)
 
-        # Phase 3: Extract structured specs via regex & compile dossier
-        specs_data = extract_specs_from_text(text)
+        # Phase 3: Extract structured specs via deep HTML parsing + regex & compile dossier
+        specs_data = extract_specs_from_soup_and_text(soup, text)
         dossier = generate_dossier(
             price=price_val,
             size_m2=size_val,
@@ -1250,7 +1426,7 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
         item["lon"] = lon
 
         # Phase 3: Ensure structured dossier is present, clean, and auto-healed
-        existing_specs = item.get("specs")
+        existing_specs = item.get("specs") or {}
         needs_dossier_regen = False
         if not existing_specs:
             needs_dossier_regen = True
@@ -1262,19 +1438,44 @@ def list_apartments(sort_by: str = "price", desc: bool = False, authorization: s
                 needs_dossier_regen = True
             elif any("vesimaksu" in c.lower() for c in existing_specs.get("cons", [])):
                 needs_dossier_regen = True
+            elif existing_specs.get("floor") is None and existing_specs.get("has_elevator") is None and existing_specs.get("water_fee") is None:
+                needs_dossier_regen = True
 
         if needs_dossier_regen:
-            item["specs"] = generate_dossier(
-                price=price,
-                size_m2=size,
-                asuinalue=area,
-                raw_text=f"{item.get('title', '')} {item.get('notes', '')}",
-                extracted_specs=existing_specs if existing_specs else None,
-                lat=lat,
-                lon=lon
-            )
+            scraped_dossier = None
+            if "vuokraovi.com" in (item.get("url") or ""):
+                try:
+                    scraped_dossier = scraper.scrape_specs_and_dossier(
+                        url=item["url"],
+                        price=price,
+                        size_m2=size,
+                        asuinalue=area,
+                        lat=lat,
+                        lon=lon
+                    )
+                except Exception:
+                    pass
+
+            if scraped_dossier and scraped_dossier.get("pros") is not None:
+                item["specs"] = scraped_dossier
+                if scraped_dossier.get("image_url") and not item.get("image_url"):
+                    item["image_url"] = scraped_dossier["image_url"]
+            else:
+                item["specs"] = generate_dossier(
+                    price=price,
+                    size_m2=size,
+                    asuinalue=area,
+                    raw_text=f"{item.get('title', '')} {item.get('notes', '')}",
+                    extracted_specs=existing_specs if existing_specs else None,
+                    lat=lat,
+                    lon=lon
+                )
+
             try:
-                sb.table("apartments").update({"specs": item["specs"]}).eq("id", apt_id).execute()
+                up_payload = {"specs": item["specs"]}
+                if item.get("image_url"):
+                    up_payload["image_url"] = item["image_url"]
+                sb.table("apartments").update(up_payload).eq("id", apt_id).execute()
             except Exception:
                 pass
         else:

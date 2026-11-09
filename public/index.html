@@ -2201,6 +2201,8 @@ function buildDossierHtml(apt) {
         } else {
             floorBadge = `🏢 ${escapeHtml(specs.floor_str)} krs`;
         }
+    } else if (specs.floor && specs.floor >= 1 && specs.floor <= 50) {
+        floorBadge = specs.total_floors ? `🏢 ${specs.floor}/${specs.total_floors} krs` : `🏢 ${specs.floor}. krs`;
     }
     const elevatorBadge = specs.has_elevator === true ? '🛗 Hissi' : specs.has_elevator === false ? 'Ei hissiä' : '🛗 -';
     const waterBadge = specs.water_included ? '💧 Vesi sisältyy' : (specs.water_fee ? `💧 ${escapeHtml(specs.water_fee)}` : '💧 Vesi: -');
