@@ -2379,16 +2379,39 @@ function updateMapTileTheme() {
     if (currentTileLayer) {
         leafletMap.removeLayer(currentTileLayer);
     }
-    // High-performance free basemaps with no API key requirement
-    const tileUrl = isDark 
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 
-    currentTileLayer = L.tileLayer(tileUrl, {
-        subdomains: 'abcd',
+    // User's official Carto.com API key
+    const cartoKey = "cb1_51x1_1_2bcf3364a1a5671df78c167b";
+    
+    // Official Carto dashboard Raster (PNG) tile endpoints
+    const cartoUrl = isDark 
+        ? `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${cartoKey}`
+        : `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoKey}`;
+
+    const osmFallbackUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+    currentTileLayer = L.tileLayer(cartoUrl, {
         maxZoom: 20,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-    }).addTo(leafletMap);
+    });
+
+    // Auto-fallback: If Carto API key is invalid, missing, expired or blocked, fall back immediately to OpenStreetMap
+    let hasFallenBack = false;
+    currentTileLayer.on('tileerror', function() {
+        if (!hasFallenBack) {
+            hasFallenBack = true;
+            console.warn("CARTO basemap tile error with current API key. Automatically falling back to OpenStreetMap.");
+            if (leafletMap && currentTileLayer) {
+                leafletMap.removeLayer(currentTileLayer);
+                currentTileLayer = L.tileLayer(osmFallbackUrl, {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(leafletMap);
+            }
+        }
+    });
+
+    currentTileLayer.addTo(leafletMap);
 }
 
 function updateMapPins() {
