@@ -1753,8 +1753,8 @@
         </div>
 
         <div id="login-fields">
-            <input type="email" id="email" placeholder="Email (leo@... / ella@...)" autocomplete="email">
-            <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+            <input type="text" id="email" placeholder="Username or email (leo / ella)" autocomplete="username" onkeydown="if(event.key==='Enter') handleAuth()">
+            <input type="password" id="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleAuth()">
             <button class="btn-auth-submit" id="auth-submit-btn" onclick="handleAuth()">Sign In</button>
         </div>
 
@@ -1778,7 +1778,7 @@
 // -------------------------------------------------------------
 // App State & Supabase Initialization
 // -------------------------------------------------------------
-const SUPABASE_PROJECT_URL = "https://xuxwzydqbbqjoxeafzce.supabase.co";
+const SUPABASE_PROJECT_URL = "https://fyrwiytzuxsebluygtjb.supabase.co";
 const SUPABASE_ANON_PUBLIC_KEY = "sb_publishable_EyvpHQRMoLrGmstxquNbfw_txuKKrex";
 const sb = supabase.createClient(SUPABASE_PROJECT_URL, SUPABASE_ANON_PUBLIC_KEY);
 
@@ -1839,28 +1839,35 @@ function switchAuthTab(tab) {
 }
 
 async function handleAuth() {
-    const email = document.getElementById("email").value.trim();
+    const rawInput = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
     const msg = document.getElementById("auth-msg");
     const btn = document.getElementById("auth-submit-btn");
 
-    if (!email || !password) {
-        msg.textContent = "Please fill in email and password.";
+    if (!rawInput || !password) {
+        msg.textContent = "Please fill in email/username and password.";
         return;
     }
+
+    const email = rawInput.includes("@") ? rawInput : `${rawInput}@tracker.local`;
 
     btn.textContent = "Signing in...";
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) {
-        msg.textContent = error.message;
-        btn.textContent = "Sign In";
-        return;
-    }
+    try {
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+            msg.textContent = error.message;
+            btn.textContent = "Sign In";
+            return;
+        }
 
-    document.getElementById("auth-overlay").style.display = "none";
-    updateUserDisplay(data.user);
-    setupRealtime();
-    loadApartments();
+        document.getElementById("auth-overlay").style.display = "none";
+        updateUserDisplay(data.user);
+        setupRealtime();
+        loadApartments();
+    } catch (err) {
+        msg.textContent = err.message || "Failed to sign in. Please try again.";
+        btn.textContent = "Sign In";
+    }
 }
 
 async function handleVisitorAccess() {
@@ -1868,25 +1875,30 @@ async function handleVisitorAccess() {
     msg.style.color = "var(--text-muted)";
     msg.textContent = "Connecting visitor session...";
 
-    const { data, error } = await sb.auth.signInWithPassword({
-        email: "visitor@helsinki.local",
-        password: "VisitorPassword123!"
-    });
+    try {
+        const { data, error } = await sb.auth.signInWithPassword({
+            email: "visitor@helsinki.local",
+            password: "VisitorPassword123!"
+        });
 
-    if (error) {
-        const { data: anonData, error: anonErr } = await sb.auth.signInAnonymously();
-        if (anonErr) {
-            msg.style.color = "#f43f5e";
-            msg.textContent = "Visitor login error: " + error.message;
-            return;
+        if (error) {
+            const { data: anonData, error: anonErr } = await sb.auth.signInAnonymously();
+            if (anonErr) {
+                msg.style.color = "#f43f5e";
+                msg.textContent = "Visitor login error: " + error.message;
+                return;
+            }
         }
-    }
 
-    const { data: sessionData } = await sb.auth.getSession();
-    document.getElementById("auth-overlay").style.display = "none";
-    updateUserDisplay(sessionData.session ? sessionData.session.user : { email: "visitor@helsinki.local" });
-    setupRealtime();
-    loadApartments();
+        const { data: sessionData } = await sb.auth.getSession();
+        document.getElementById("auth-overlay").style.display = "none";
+        updateUserDisplay(sessionData.session ? sessionData.session.user : { email: "visitor@helsinki.local" });
+        setupRealtime();
+        loadApartments();
+    } catch (err) {
+        msg.style.color = "#f43f5e";
+        msg.textContent = "Visitor login error: " + (err.message || "Connection failed.");
+    }
 }
 
 function updateUserDisplay(user) {
