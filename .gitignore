@@ -31,6 +31,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Node dependencies
+node_modules/
+
 # OS & Editor
 .DS_Store
 Thumbs.db
