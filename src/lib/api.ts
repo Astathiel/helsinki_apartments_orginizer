@@ -91,3 +91,4 @@ export function deleteApartment(apartmentId: number): Promise<unknown> {
     method: "DELETE",
   });
 }
+

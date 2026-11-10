@@ -342,3 +342,4 @@ export function CompareModal({
     </div>
   );
 }
+

@@ -90,3 +90,4 @@ export interface ScrapeApartmentPayload {
   url: string;
   fallback_asuinalue: string;
 }
+

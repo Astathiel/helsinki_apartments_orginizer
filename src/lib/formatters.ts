@@ -65,3 +65,4 @@ export function escapeHtml(str: unknown): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
